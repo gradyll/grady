@@ -1,0 +1,29 @@
+{
+  "name": "grady-study",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vitepress --port 5137",
+    "build": "vitepress build",
+    "serve": "vitepress serve"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "less": "^4.1.3",
+    "vitepress": "1.0.0-alpha.4",
+    "vue": "^3.2.37"
+  },
+  "pnpm": {
+    "peerDependencyRules": {
+      "ignoreMissing": [
+        "@types/react",
+        "react",
+        "react-dom",
+        "@algolia/client-search"
+      ]
+    }
+  }
+}
