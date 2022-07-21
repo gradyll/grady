@@ -98,4 +98,4 @@ module.exports = {
 }
 ```
 5. 使用 `git cz` 代替 `git commit`,即可看到提示内容
-![git cz提示](/grady/cz_alt.jpg)
+![git cz提示](../public/cz_alt.jpg)
