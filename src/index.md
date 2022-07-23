@@ -22,7 +22,6 @@ features:
     title: 感悟和经历
     details: 此处记录了个人生活感悟和经历。
 ---
-
 <style>
 .VPHome .VPHero{
   display: flex;

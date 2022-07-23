@@ -4,7 +4,7 @@ export default defineConfigWithTheme({
   base: '/grady/',
   title: 'Gradyll',
   description: 'This is b vite-ts-blog.',
-  // lastUpdated: true,
+  lastUpdated: true,
   lang: 'en-US',
   head: [
     ["link", { rel: "icon", href: "/grady/logo.png" }]
@@ -15,7 +15,22 @@ export default defineConfigWithTheme({
     logo: '/logo.png',
     nav: [
       { text: 'Guide', activeMatch: `^/guide/`, link: '/guide/index', },
-      // { text: '', activeMatch: `^/life/`, link: '/life/eat/index' },
+      // {
+      //   text: '源码分析',
+      //   activeMatch: '^/(vueAnalysis|vueNextAnalysis)/',
+      //   items: [
+      //     { text: 'Vue2源码分析', link: '/vueAnalysis/index' },
+      //     { text: 'Vue3源码分析', link: '/vueNextAnalysis/index' },
+      //   ]
+      // },
+      {
+        text: '面试之道',
+        activeMatch: '^/javascript/',
+        items: [
+          { text: 'javascript', link: '/javascript/index' }
+        ]
+      },
+      { text: 'vitepress', link: 'https://vitepress.vuejs.org/' },
 
     ],
     sidebar: {
@@ -27,9 +42,34 @@ export default defineConfigWithTheme({
           ]
         }
       ],
+      // '/vueAnalysis/': [
+      //   {
+      //     text: 'Vue',
+      //     items: [
+      //       { text: 'Vue2', link: '/vueAnalysis/index' },
+      //     ]
+      //   }
+      // ],
+      // '/vueNextAnalysis/': [
+      //   {
+      //     text: 'Vue',
+      //     items: [
+      //       { text: 'Vue3', link: '/vueNextAnalysis/index' },
+      //     ]
+      //   }
+      // ],
+      '/javascript/': [
+        {
+          text: '面试之道',
+          items: [
+            { text: 'javascript基础面试题', link: '/javascript/index' },
+            { text: 'javascript进阶', link: '/javascript/advance' },
+          ]
+        }
+      ]
     },
     socialLinks: [
-      { icon: 'github', link: 'https://gradyll.github.io/grady/' },
+      { icon: 'github', link: 'https://github.com/gradyll/grady' },
     ],
     editLink: {
       pattern: 'https://gradyll.github.io/grady/:path',
