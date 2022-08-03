@@ -39,6 +39,7 @@ export default defineConfigWithTheme({
           text: 'Guide',
           items: [
             { text: 'Introduction', link: '/guide/index' },
+            { text: 'vite-plugin-svg-icons', link: '/guide/vue3_vite' },
           ]
         }
       ],
