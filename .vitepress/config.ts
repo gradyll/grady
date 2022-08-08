@@ -15,14 +15,14 @@ export default defineConfigWithTheme({
     logo: '/logo.png',
     nav: [
       { text: 'Guide', activeMatch: `^/guide/`, link: '/guide/index', },
-      // {
-      //   text: '源码分析',
-      //   activeMatch: '^/(vueAnalysis|vueNextAnalysis)/',
-      //   items: [
-      //     { text: 'Vue2源码分析', link: '/vueAnalysis/index' },
-      //     { text: 'Vue3源码分析', link: '/vueNextAnalysis/index' },
-      //   ]
-      // },
+      {
+        text: '源码分析',
+        activeMatch: '^/(vueAnalysis|vueNextAnalysis)/',
+        items: [
+          // { text: 'Vue2源码分析', link: '/vueAnalysis/index' },
+          { text: 'Vue3源码分析', link: '/vueNextAnalysis/index' },
+        ]
+      },
       {
         text: '面试之道',
         activeMatch: '^/javascript/',
@@ -40,6 +40,7 @@ export default defineConfigWithTheme({
           items: [
             { text: 'Introduction', link: '/guide/index' },
             { text: 'vite-plugin-svg-icons', link: '/guide/vue3_vite' },
+            { text: 'reduce 的用法', link: '/guide/reduce' },
           ]
         }
       ],
@@ -51,14 +52,14 @@ export default defineConfigWithTheme({
       //     ]
       //   }
       // ],
-      // '/vueNextAnalysis/': [
-      //   {
-      //     text: 'Vue',
-      //     items: [
-      //       { text: 'Vue3', link: '/vueNextAnalysis/index' },
-      //     ]
-      //   }
-      // ],
+      '/vueNextAnalysis/': [
+        {
+          text: 'Vue',
+          items: [
+            { text: 'Vue3', link: '/vueNextAnalysis/index' },
+          ]
+        }
+      ],
       '/javascript/': [
         {
           text: '面试之道',
