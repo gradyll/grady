@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vitepress --port 5137 --open",
     "build": "vitepress build",
-    "serve": "vitepress serve"
+    "serve": "vitepress serve",
+    "live": "cd src/examples && live-server ./"
   },
   "keywords": [],
   "author": "",
