@@ -229,7 +229,7 @@ var deepProxy = function(obj) {
 }
 deepProxy(person);
 ```
-![image.png](https://cdn.nlark.com/yuque/0/2022/png/1554877/1647167301464-1a29aebf-6af9-45eb-bf7c-8069598c9920.png#clientId=u5640932b-f4ee-4&crop=0&crop=0&crop=1&crop=1&from=paste&height=199&id=u76118a0c&margin=%5Bobject%20Object%5D&name=image.png&originHeight=397&originWidth=732&originalType=binary&ratio=1&rotation=0&showTitle=false&size=104884&status=done&style=none&taskId=u8c380741-92e1-4c0d-9d45-93bedcc7e35&title=&width=366)
+![image.png](./img/proxy-1.png)
 这就是我说为什么不准确的原因了, 所以万不得已，真心不推荐用递归的方式去设置Proxy, 当然，有办法递归设置Proxy，咱们就有办法给它还原
 ```javascript
 
