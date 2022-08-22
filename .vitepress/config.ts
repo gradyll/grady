@@ -30,6 +30,10 @@ export default defineConfigWithTheme({
           { text: 'javascript', link: '/javascript/index' }
         ]
       },
+      {
+        text: 'Rust',
+        activeMatch: '^/rust/', link: '/rust/questinos'
+      },
       { text: 'vitepress', link: 'https://vitepress.vuejs.org/' },
 
     ],
@@ -66,6 +70,19 @@ export default defineConfigWithTheme({
           items: [
             { text: 'javascript基础面试题', link: '/javascript/index' },
             { text: 'javascript进阶', link: '/javascript/advance' },
+          ]
+        }
+      ],
+      '/rust/': [
+        {
+          text: 'Rust',
+          items: [
+            // {
+            //   text: 'Rust', link: '/rust/index'
+            // },
+            {
+              text: 'Rust 问题集', link: '/rust/questinos'
+            }
           ]
         }
       ]
