@@ -11,6 +11,7 @@ export default defineConfigWithTheme({
   ],
   themeConfig: {
     // outlineTitle: 'In hac pagina',
+    lastUpdatedText: '上次更新时间',
     siteTitle: 'Gradyll',
     logo: '/logo.png',
     nav: [
@@ -70,6 +71,7 @@ export default defineConfigWithTheme({
           items: [
             { text: 'javascript基础面试题', link: '/javascript/index' },
             { text: 'javascript进阶', link: '/javascript/advance' },
+            { text: 'Promise', link: '/javascript/promise' },
           ]
         }
       ],
