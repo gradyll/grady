@@ -46,6 +46,7 @@ export default defineConfigWithTheme({
             { text: 'Introduction', link: '/guide/index' },
             { text: 'vite-plugin-svg-icons', link: '/guide/vue3_vite' },
             { text: 'reduce 的用法', link: '/guide/reduce' },
+            { text: '图片URL转文件对象file', link: '/guide/js2file' },
           ]
         }
       ],
