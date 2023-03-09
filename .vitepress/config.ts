@@ -42,13 +42,22 @@ export default defineConfigWithTheme({
       '/guide/': [
         {
           text: 'Guide',
+          collapsible: true,
+          collapsed: false, // 默认展开还是收起
           items: [
             { text: 'Introduction', link: '/guide/index' },
             { text: 'vite-plugin-svg-icons', link: '/guide/vue3_vite' },
             { text: 'reduce 的用法', link: '/guide/reduce' },
             { text: '图片URL转文件对象file', link: '/guide/js2file' },
           ]
-        }
+        },
+        {
+          text: '设计模式',
+          collapsible: true,
+          items: [
+            { text: 'Introduction', link: '/guide/design-pattern' },
+          ]
+        },
       ],
       // '/vueAnalysis/': [
       //   {
@@ -69,6 +78,7 @@ export default defineConfigWithTheme({
       '/javascript/': [
         {
           text: '面试之道',
+          collapsible: true,
           items: [
             { text: 'javascript基础面试题', link: '/javascript/index' },
             { text: 'javascript进阶', link: '/javascript/advance' },

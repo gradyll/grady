@@ -1,0 +1,16 @@
+{
+  "name": "rollup",
+  "version": "1.0.0",
+  "description": "",
+  "type":"module",
+  "main": "main.js",
+  "scripts": {
+    "dev": "rollup -c"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@rollup/plugin-typescript": "^11.0.0",
+    "rollup": "^3.9.1"
+  }
+}
