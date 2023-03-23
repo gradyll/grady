@@ -7,9 +7,9 @@ hero:
   actions:
     - theme: brand
       text: 开始学习吧
-      link: ''
+      link: '/guide/index.html'
     # - theme: alt
-    #   text: View on GitHub
+    #   text: vitepress
     #   link: https://github.com/vuejs/vitepress
 features:
   - icon: 📝

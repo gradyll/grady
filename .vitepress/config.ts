@@ -83,8 +83,9 @@ export default defineConfigWithTheme({
             { text: 'javascript基础面试题', link: '/javascript/index' },
             { text: 'javascript进阶', link: '/javascript/advance' },
             { text: 'Promise', link: '/javascript/promise' },
+            { text: '精通Git', link: '/javascript/Git' },
           ]
-        }
+        },
       ],
       '/rust/': [
         {
