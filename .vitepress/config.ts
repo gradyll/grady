@@ -81,7 +81,7 @@ export default defineConfigWithTheme({
           collapsible: true,
           items: [
             { text: 'javascript基础面试题', link: '/javascript/index' },
-            { text: 'javascript进阶', link: '/javascript/advance' },
+            { text: 'javascript进阶(手写)', link: '/javascript/advance' },
             { text: 'Promise', link: '/javascript/promise' },
             { text: '精通Git', link: '/javascript/Git' },
           ]
