@@ -145,3 +145,6 @@ eb.emit('event1', ['第二次1', '第二次2'])
 eb.once('once', test4);
 eb.emit('once', '执行一次', 1, 2, 3)
 ```
+参考地址:
+
+(进军的蜗牛)[https://www.cnblogs.com/yalong/p/14294497.html]
