@@ -85,6 +85,7 @@ export default defineConfigWithTheme({
             { text: 'Promise', link: '/javascript/promise' },
             { text: '精通Git', link: '/javascript/Git' },
             { text: '混合APP与H5的区别', link: '/javascript/h5' },
+            { text: 'mockjs拦截原理', link: '/javascript/mockjs拦截原理' },
           ]
         },
       ],
