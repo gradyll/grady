@@ -84,6 +84,7 @@ export default defineConfigWithTheme({
             { text: 'javascript进阶(手写)', link: '/javascript/advance' },
             { text: 'Promise', link: '/javascript/promise' },
             { text: '精通Git', link: '/javascript/Git' },
+            { text: '混合APP与H5的区别', link: '/javascript/h5' },
           ]
         },
       ],

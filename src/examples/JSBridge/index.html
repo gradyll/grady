@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <style>
+    * {
+      font-size: 28px;
+    }
+  </style>
+</head>
+<body>
+  JSBridge 测试页面
+  <div>
+    <input id="editText" type="text" placeholder="输入框内容s">
+  </div>
+  <div> 
+    <button id="showBtn">显示Native</button>
+  </div>
+  <div> 
+    <button id="showBtn2">获取Native输入</button>
+  </div>
+  <script>
+    let id = 1;
+    const callbackMap = {}
+    window.jssdk = {
+      getWebEditTextValue(callbakcId, ) {
+        const editText = document.getElementById('editText')
+        NativeBridge.receiveMessage(callbakcId, editText.value)
+      },
+
+
+      getNativeEditTextValue(callback) {
+        const callbakcId = id++
+        callbackMap[id] = callback
+        NativeBridge.getNativeEditTextValue(callbakcId)
+      },
+      recevieMessage(callbakcId, value) {
+        if(callbackMap[callbakcId]) {
+          callbackMap[callbakcId](value)
+        }
+      }
+    }
+
+
+    window.showWebDialog = (text) => {
+      alert(text)
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const editText = document.getElementById('editText');
+      const showBtn = document.getElementById('showBtn');
+      const showBtn2 = document.getElementById('showBtn2');
+      
+      console.log(showBtn2, 'showBtn2');
+      showBtn.addEventListener('click', () => {
+        const inputValue = editText.value;
+        showNativeDialog(inputValue)
+      })
+      showBtn2.addEventListener('click', () => {
+
+        window.jssdk.getNativeEditTextValue((value) => {
+          window.alert('from Native inputValue is '+ value)
+        })
+      })
+    })
+
+    function showNativeDialog(text) {
+      // window.alert('JSBridge://showWebDialog?text='+ text)
+      
+      window.NativeBridge.showNativeDialog(text)
+
+    }
+
+
+  </script>
+</body>
+</html>
