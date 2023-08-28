@@ -3,6 +3,65 @@
 
 ## 安装 `husky` 依赖
 
+```vue
+<div id="app">
+  <button @click="count++">
+    Count is: {{ count }}
+  </button>
+</div>
+```
+
+**Result**
+
+<script setup>
+import { ref } from 'vue'
+const count = ref(0)
+</script>
+
+<div class="demo">
+  <button @click="count++">
+    Count is: {{ count }}
+  </button>
+</div>
+
+<!-- ::: code-group
+
+```sh [npm]
+$ npm install -D vitepress
+```
+
+```sh [pnpm]
+$ pnpm add -D vitepress@latest
+```
+
+```sh [yarn]
+$ yarn add -D vitepress
+```
+
+:::
+
+::: details Getting missing peer deps warnings?
+If using PNPM, you will notice a missing peer warning for `@docsearch/js`. This does not prevent VitePress from working. If you wish to suppress this warning, add the following to your `package.json`:
+
+```json
+"pnpm": {
+  "peerDependencyRules": {
+    "ignoreMissing": [
+      "@algolia/client-search",
+      "search-insights"
+    ]
+  }
+}
+```
+
+:::
+
+::: tip Vue as Peer Dependency
+If you intend to perform customization that uses Vue components or APIs, you should also explicitly install `vue` as a peer dependency.
+::: -->
+
+
+
 ```
 # 在项目的根路径下（即.git的所在目录）
 npm install --save-dev husky
