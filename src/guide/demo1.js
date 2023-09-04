@@ -31,3 +31,46 @@ Dog.prototype.sound = function() {
 }
 
 makeSound(new Dog())
+
+var myObject = (function() {
+  var _name = 'Seven'; // 私有（private）变量
+  return {
+    getName: function() { // 公开(public) 方法
+      return _name;
+    }
+  }
+})();
+
+
+// var obj1 = {
+//   name: 'seven'
+// }
+
+// var obj2 = {
+//   name: 'Grady'
+// }
+
+// window.name = 'window'
+
+// var getNames = function(){
+//   return this.name;
+// }
+
+// getNames() // window
+// getNames.call(obj1) // seven
+// getNames.call(obj2) // Grady
+
+var A = function(name) {
+  this.name = name
+}
+
+var B = function() {
+  A.apply(this, arguments)
+}
+
+B.prototype.getName = function() {
+  return this.name
+}
+
+var b = new B('Grady')
+console.log(b.getName()) 
