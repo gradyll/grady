@@ -7,7 +7,7 @@ export default {
   ...DefaultTheme,
   Layout: () => {
     return h(DefaultTheme.Layout, null, {
-      // 'sidebar-top': () => h('div', 'hello top'),
+      'sidebar-top': () => h('div', 'hello top'),
       // 'sidebar-bottom': () => h('div', 'hello bottom'),
       // 'content-top': () => h('h1', 'Announcement!'),
       // 'content-bottom': () => h('div', 'Some ads'),

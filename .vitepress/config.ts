@@ -31,10 +31,11 @@ export default defineConfigWithTheme({
           { text: 'javascript', link: '/javascript/index' }
         ]
       },
-      {
-        text: 'Rust',
-        activeMatch: '^/rust/', link: '/rust/questinos'
-      },
+      // {
+      //   text: 'Rust',
+      //   activeMatch: '^/rust/', link: '/rust/questinos'
+      // },
+      { text: '生活随录', activeMatch: '^/life/', link: '/life/index' },
       { text: 'vitepress', link: 'https://vitepress.vuejs.org/' },
 
     ],
@@ -89,26 +90,26 @@ export default defineConfigWithTheme({
           ]
         },
       ],
-      '/rust/': [
-        {
-          text: 'Rust',
-          items: [
-            // {
-            //   text: 'Rust', link: '/rust/index'
-            // },
-            {
-              text: 'Rust 问题集', link: '/rust/questinos'
-            }
-          ]
-        }
-      ]
+      // '/rust/': [
+      //   {
+      //     text: 'Rust',
+      //     items: [
+      //       {
+      //         text: 'Rust', link: '/rust/index'
+      //       },
+      //       {
+      //         text: 'Rust 问题集', link: '/rust/questinos'
+      //       }
+      //     ]
+      //   }
+      // ]
     },
     socialLinks: [
       { icon: 'github', link: 'https://github.com/gradyll/grady' },
     ],
     editLink: {
       pattern: 'https://gradyll.github.io/grady/:path',
-      text: 'Edit this page on GitHub'
+      text: '点击编辑此页面'
     },
     footer: {
       message: 'Released under the MIT License.',
