@@ -53,10 +53,11 @@ export default defineConfigWithTheme({
           ]
         },
         {
-          text: '设计模式',
+          text: '设计模式与开发实践',
           collapsible: true,
           items: [
-            { text: 'Introduction', link: '/guide/design-pattern' },
+            { text: '基础部分', link: '/guide/design-pattern' },
+            { text: '设计模式', link: '/guide/design-pattern_2' },
           ]
         },
       ],
