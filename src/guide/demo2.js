@@ -3,9 +3,9 @@ var CreateDiv = function(html) {
   this.init()
 }
 CreateDiv.prototype.init = function() {
-  var div = document.createElement('div');
-  div.innerHTML = this.html;
-  document.body.appendChild(div);
+  // var div = window.document.createElement('div');
+  // div.innerHTML = this.html;
+  // document.body.appendChild(div);
 }
 
 var ProxySingletonCreateDiv = (function() {
