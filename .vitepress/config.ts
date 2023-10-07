@@ -112,9 +112,26 @@ export default defineConfigWithTheme({
       pattern: 'https://gradyll.github.io/grady/:path',
       text: '点击编辑此页面'
     },
+    outline: 'deep',
+    outlineTitle: '目录',
     footer: {
       message: 'Released under the MIT License.',
       copyright: `Copyright © 2022-${new Date().getFullYear()} Gradyll`
+    },
+    algolia: {
+      appId: 'ZEA6C6A7H5', // 需要替换
+      apiKey: '41cc42c828ad654f92bddf233903b280', // 需要替换
+      indexName: 'grady', // 需要替换
+      placeholder: '请输入关键词',
+      buttonText: '搜索',
+      insights: true,
+      container: '### REPLACE ME WITH A CONTAINER (e.g. div) ###',
+      debug: false,
+      translations: {
+        button: {
+          buttonText: '搜索文档',
+        },
+      },
     }
   },
   srcDir: 'src',

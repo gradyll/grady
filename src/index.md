@@ -11,6 +11,9 @@ hero:
     # - theme: alt
     #   text: vitepress
     #   link: https://github.com/vuejs/vitepress
+  # image:
+  #   src: /logo.png
+  #   alt: VitePress
 features:
   - icon: 📝
     title: 记录
@@ -22,6 +25,7 @@ features:
     title: 感悟和经历
     details: 此处记录了个人生活感悟和经历。
 ---
+
 <style>
 .VPHome .VPHero{
   display: flex;
