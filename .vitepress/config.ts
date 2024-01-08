@@ -15,7 +15,7 @@ export default defineConfigWithTheme({
     siteTitle: 'Gradyll',
     logo: '/logo.png',
     nav: [
-      { text: 'Guide', activeMatch: `^/guide/`, link: '/guide/index', },
+      { text: '指导', activeMatch: `^/guide/`, link: '/guide/index', },
       {
         text: '源码分析',
         activeMatch: '^/(vueAnalysis|vueNextAnalysis)/',
