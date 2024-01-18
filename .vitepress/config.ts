@@ -1,4 +1,25 @@
 import { defineConfigWithTheme } from 'vitepress'
+import Git from 'simple-git'
+
+const git = Git({
+  maxConcurrentProcesses: 200,
+})
+
+
+async function getGit() {
+  const logs = (await git.log({maxCount: 200})).all.filter(item => item.message)
+  // console.log(logs, 'loglog');
+
+  for(const log of logs) {
+    const raw = await git.raw(['diff-tree', '--no-commit-id', '--name-only', '-r', log.hash])
+
+    // console.log(raw, 'rawraw');
+    
+  }
+}
+
+getGit()
+
 
 export default defineConfigWithTheme({
   base: '/grady/',
