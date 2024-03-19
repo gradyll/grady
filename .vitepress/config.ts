@@ -36,6 +36,7 @@ export default defineConfigWithTheme({
     siteTitle: 'Gradyll',
     logo: '/logo.png',
     nav: [
+      { text: '掘金文章', activeMatch: `^/juejin/`, link: '/juejin/index', },
       { text: '指导', activeMatch: `^/guide/`, link: '/guide/index', },
       {
         text: '源码分析',
@@ -61,6 +62,16 @@ export default defineConfigWithTheme({
 
     ],
     sidebar: {
+      '/juejin/': [
+        {
+          text: '掘金文章',
+          collapsible: true,
+          collapsed: false, // 默认展开还是收起
+          items: [
+            { text: '点赞文章列表', link: '/juejin/index' },
+          ]
+        }
+      ],
       '/guide/': [
         {
           text: 'Guide',

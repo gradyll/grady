@@ -1,5 +1,6 @@
 import './styles/index.css'
 import Layout from './components/Layout.vue'
+import ArticleList from './components/articleList.vue'
 import DefaultTheme from 'vitepress/theme'
 import { h, App } from 'vue'
 export default {
@@ -21,6 +22,7 @@ export default {
   NotFound: () => 'custom 404',
 
   enhanceApp({ app }: { app: App }) {
+    app.component('article-list', ArticleList)
     // app is the Vue 3 app instance from `createApp()`.
     // router is VitePress' custom router. `siteData` is
     // a `ref` of current site-level metadata.
