@@ -1,1 +1,0 @@
-import{_ as a,o as s,c as e,Q as n}from"./chunks/framework.64a3e084.js";const C=JSON.parse('{"title":"生活随录ssss","description":"","frontmatter":{},"headers":[],"relativePath":"life/index.md","lastUpdated":1710900990000}'),l={name:"life/index.md"},t=n("",5),o=[t];function p(c,i,r,d,h,b){return s(),e("div",null,o)}const y=a(l,[["render",p]]);export{C as __pageData,y as default};
