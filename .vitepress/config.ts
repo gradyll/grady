@@ -7,14 +7,14 @@ const git = Git({
 
 
 async function getGit() {
-  const logs = (await git.log({maxCount: 200})).all.filter(item => item.message)
+  const logs = (await git.log({ maxCount: 200 })).all.filter(item => item.message)
   // console.log(logs, 'loglog');
 
-  for(const log of logs) {
+  for (const log of logs) {
     const raw = await git.raw(['diff-tree', '--no-commit-id', '--name-only', '-r', log.hash])
 
     // console.log(raw, 'rawraw');
-    
+
   }
 }
 
@@ -52,6 +52,11 @@ export default defineConfigWithTheme({
         items: [
           { text: 'javascript', link: '/javascript/index' }
         ]
+      },
+      {
+        text: '工作记录',
+        activeMatch: '^/workLog/',
+        link: '/workLog/index'
       },
       // {
       //   text: 'Rust',
@@ -122,6 +127,15 @@ export default defineConfigWithTheme({
             { text: 'mockjs拦截原理', link: '/javascript/mockjs拦截原理' },
           ]
         },
+      ],
+      '/workLog/': [
+        {
+          text: '工作记录',
+          collapsible: true,
+          items: [
+            { text: '如何发布版本更新', link: '/workLog/index' },
+          ]
+        }
       ],
       // '/rust/': [
       //   {
