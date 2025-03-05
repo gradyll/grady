@@ -113,6 +113,8 @@ export default defineConfigWithTheme({
           items: [
             { text: 'lodash 源码阅读和分析', link: '/lodash/index' },
             { text: 'lodash 源码--chunk', link: '/lodash/chunk' },
+            { text: 'lodash 源码--getRawTag', link: '/lodash/getRawTag' },
+            { text: 'lodash 源码--baseGetTag', link: '/lodash/baseGetTag' },
           ]
         }
       ],
