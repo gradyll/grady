@@ -40,10 +40,11 @@ export default defineConfigWithTheme({
       { text: '指导', activeMatch: `^/guide/`, link: '/guide/index', },
       {
         text: '源码分析',
-        activeMatch: '^/(vueAnalysis|vueNextAnalysis)/',
+        activeMatch: '^/(vueAnalysis|vueNextAnalysis|lodash)/',
         items: [
           // { text: 'Vue2源码分析', link: '/vueAnalysis/index' },
           { text: 'Vue3源码分析', link: '/vueNextAnalysis/index' },
+          { text: 'lodash 源码阅读和分析', link: '/lodash/index' },
         ]
       },
       {
@@ -106,6 +107,15 @@ export default defineConfigWithTheme({
       //     ]
       //   }
       // ],
+      'lodash': [
+        {
+          text: 'lodash',
+          items: [
+            { text: 'lodash 源码阅读和分析', link: '/lodash/index' },
+            { text: 'lodash 源码--chunk', link: '/lodash/chunk' },
+          ]
+        }
+      ],
       '/vueNextAnalysis/': [
         {
           text: 'Vue',
