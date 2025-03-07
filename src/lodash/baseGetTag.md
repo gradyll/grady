@@ -1,4 +1,4 @@
-# getRawTag 
+# baseGetTag 
 
 ## 功能概述
 `baseGetTag` 函数是 `Lodash` 中的一个核心工具函数，主要用于获取值的原始类型标签。它是 `Lodash` 类型检测系统的基础，通过合理运用 `Object.prototype.toString` 方法，结合对 `Symbol.toStringTag` 的处理，实现了准确的类型标识获取。
