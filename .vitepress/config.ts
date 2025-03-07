@@ -117,6 +117,7 @@ export default defineConfigWithTheme({
             { text: 'lodash 源码--baseGetTag', link: '/lodash/baseGetTag' },
             { text: 'lodash 源码--isObject', link: '/lodash/isObject' },
             { text: 'lodash 源码--isObjectLike', link: '/lodash/isObjectLike' },
+            { text: 'lodash 源码--isPlainObject', link: '/lodash/isPlainObject' },
           ]
         }
       ],
