@@ -14,7 +14,7 @@ async function getGit() {
     const raw = await git.raw(['diff-tree', '--no-commit-id', '--name-only', '-r', log.hash])
 
     // console.log(raw, 'rawraw');
-
+    console.log(raw, 'loglog');
   }
 }
 
