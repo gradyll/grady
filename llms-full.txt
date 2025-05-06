@@ -1,0 +1,5591 @@
+---
+url: /lodash/baseGetTag.md
+---
+# baseGetTag
+
+## 功能概述
+
+`baseGetTag` 函数是 `Lodash` 中的一个核心工具函数，主要用于获取值的原始类型标签。它是 `Lodash` 类型检测系统的基础，通过合理运用 `Object.prototype.toString` 方法，结合对 `Symbol.toStringTag` 的处理，实现了准确的类型标识获取。
+
+## 源码实现
+
+```js
+function baseGetTag(value) {
+  // 处理 null 和 undefined 值的情况
+  if (value == null) {
+    return value === undefined ? undefinedTag : nullTag;
+  }
+  // 优先通过 Symbol.toStringTag 获取精确标签（避免环境兼容性问题），回退到 Object.prototype.toString 作为兜底方案。
+  return symToStringTag && symToStringTag in Object(value)
+    ? getRawTag(value)
+    : objectToString(value);
+}
+
+
+```
+
+## 实现原理解析
+
+### 1. null 和 undefined 的处理
+
+```
+函数首先处理了 JavaScript 中的两个特殊值：
+```
+
+```js
+  if (value == null) {
+    return value === undefined ? undefinedTag : nullTag;
+  }
+```
+
+这个处理很重要，因为：
+\- null 和 undefined 都不能直接调用 toString 方法
+\- 需要区分这两个值，返回不同的类型标签
+\- 使用 == null 可以同时检测 null 和 undefined
+
+### 2. `Symbol.toStringTag` 检测
+
+函数采用了一个巧妙的临时屏蔽机制：
+
+```js
+symToStringTag && symToStringTag in Object(value)
+  ? getRawTag(value)
+  : objectToString(value);
+```
+
+* symToStringTag：ES6 引入的 Symbol.toStringTag 允许对象自定义 toString 的返回值。
+* 若 symToStringTag 存在且 Object(value) 的原型链上包含该属性，则直接调用 getRawTag(value) 获取原始标签（如 "\[object String]"）
+* 否则，回退到使用 objectToString(value)（即 Object.prototype.toString.call(value)）
+
+### 3. 类型标签获取策略
+
+baseGetTag 采用了分层的类型检测策略：
+
+1. 对于 null 和 undefined：直接返回固定的类型标签
+2. 对于不含 Symbol.toStringTag 的值：使用原生 toString 方法
+3. 对于含 Symbol.toStringTag 的值：使用 getRawTag 处理
+
+```js
+// 基础类型
+baseGetTag(42); // "[object Number]"
+baseGetTag("str"); // "[object String]"
+
+// 特殊值
+baseGetTag(null); // "[object Null]"
+baseGetTag(undefined); // "[object Undefined]"
+
+// 自定义 Symbol.toStringTag
+const obj = {
+  [Symbol.toStringTag]: "Custom",
+};
+baseGetTag(obj); // "[object Custom]"
+
+```
+
+## 总结
+
+baseGetTag 是 Lodash 类型检测系统的基石，它通过优雅的分层设计，解决了 JavaScript 类型检测中的各种边界情况。通过与 getRawTag 的配合，它完整地解决了包括 Symbol.toStringTag 在内的各种类型判断场景。
+
+---
+
+---
+url: /lodash/chunk.md
+---
+# chunk
+
+`chunk`是 Lodash 中用于将一维数组按指定长度分割为二维数组的实用函数。本文结合源码实现，从参数处理、核心逻辑到优化细节进行详细分析。
+
+```typescript
+function chunk<T>(array: T[], size: number): T[][]
+```
+
+## 一、函数功能与参数处理
+
+1. ‌功能定义‌
+   chunk(array, size) 将数组 array 分割为多个长度为 size 的子数组。若无法均分，最后一个子数组包含剩余元素‌12。
+   ‌示例‌：
+
+```javascript
+chunk([10,20,30,40], 2)  // [[10,20], [30,40]]
+chunk([10,20,30,40], 3)  // [[10,20,30], ]
+```
+
+2. ‌‌参数校验
+
+* `‌size` 处理‌：通过 `size = Math.max(size, 0)` 确保 `size` 为非负数‌12。
+* ‌边界条件‌：若 `array` 为空或 `size` < 1，直接返回空数组 \[]‌。
+
+## 二、核心逻辑实现
+
+1. ‌‌‌计算分割结果长度
+   使用 `Math.ceil(length / size)` 确定结果数组长度，避免多次扩容‌。
+
+```javascript
+const result = new Array(Math.ceil(length / size));
+
+```
+
+2. 循环分割数组
+
+* `‌while` 循环‌：通过 `index += size` 递增索引，利用 `array.slice(index, index + size) `
+* ‌性能优化‌：直接调用原生 `slice` 方法减少循环次数，优于逐元素 `push` 操作‌。
+  ‌代码片段‌：
+
+```javascript
+while (index < length) {
+  result[resIndex++] = array.slice(index, (index += size));
+}
+```
+
+## 三、依赖函数与内部处理
+
+1. `‌slice` 函数‌
+
+负责截取子数组，处理 start 和 end 的负数及越界情况‌。
+‌示例‌：slice(\[1,2,3], -2, 4) 转换为有效索引 \[1,3]‌。
+
+2. ‌类型转换工具‌
+   `‌toInteger`‌：将参数转换为整数，处理非数值输入（如字符串 "3"→3）‌35。
+   `‌toFinite`‌：确保数值在安全范围内（如 Infinity→Number.MAX\_SAFE\_INTEGER）‌35。
+
+## 四、完整源码
+
+```javascript
+
+function isIterateeCall(value, index, object) {
+  if (!isObject(object)) {
+    return false;
+  }
+  var type = typeof index;
+  if (type == 'number'
+        ? (isArrayLike(object) && isIndex(index, object.length))
+        : (type == 'string' && index in object)
+      ) {
+    return eq(object[index], value);
+  }
+  return false;
+}
+
+
+function chunk(array, size, guard) {
+    if ((guard ? isIterateeCall(array, size, guard) : size === undefined)) {
+      size = 1;
+    } else {
+      size = nativeMax(toInteger(size), 0);
+    }
+    var length = array == null ? 0 : array.length;
+    if (!length || size < 1) {
+      return [];
+    }
+    var index = 0,
+        resIndex = 0,
+        result = Array(nativeCeil(length / size));
+
+    while (index < length) {
+      result[resIndex++] = baseSlice(array, index, (index += size));
+    }
+    return result;
+  }
+
+```
+
+---
+
+---
+url: /guide.md
+---
+# Commitizen规范化提交代码
+
+## 安装 `husky` 依赖
+
+```vue
+<div id="app">
+  <button @click="count++">
+    Count is: {{ count }}
+  </button>
+</div>
+```
+
+**Result**
+
+```
+# 在项目的根路径下（即.git的所在目录）
+npm install --save-dev husky
+```
+
+## 安装 `commitlint`
+
+```
+# 在 node_modules的同级下安装
+npm install --save-dev @commitlint/config-conventional @commitlint/cli @commitlint/prompt-cli
+```
+
+## 项目中安装 `husky`
+
+```sh
+# 在项目的根目录（即.git的所在目录）
+npx husky install
+
+```
+
+## 生成 `commitlint` 配置文件
+
+```sh
+echo "module.exports = {extends: ['@commitlint/config-conventional']};" > commitlint.config.js
+```
+
+## 在 `packag.json` 中添加
+
+```json
+# 第一层级
+husky": {
+  "hooks": {
+    "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
+  }
+}
+```
+
+## Add Hook
+
+```
+npx husky add .husky/commit-msg 'npx --no-install commitlint --edit $1'
+```
+
+:::warning
+以上安装完成之后还需要安装一个库
+:::
+
+1. 全局安装 `Commitizen`
+
+```
+npm install -g commitizen
+```
+
+2. 安装并配置 `cz-customizable` 插件
+
+```
+npm i cz-customizable
+```
+
+3. 添加以下配置到 `package.json` 中
+
+```json
+ "config": {
+    "commitizen": {
+      "path": "node_modules/cz-customizable"
+    }
+  }
+```
+
+4. 项目根目录下创建 `.cz-config.js` 自定义提示文件
+
+```js
+module.exports = {
+  // 可选类型
+  types: [
+    { value: 'feat', name: 'feat:     新功能' },
+    { value: 'fix', name: 'fix:      修复' },
+    { value: 'docs', name: 'docs:     文档变更' },
+    { value: 'style', name: 'style:    代码格式(不影响代码运行的变动)' },
+    {
+      value: 'refactor',
+      name: 'refactor: 重构(既不是增加feature，也不是修复bug)'
+    },
+    { value: 'perf', name: 'perf:     性能优化' },
+    { value: 'test', name: 'test:     增加测试' },
+    { value: 'chore', name: 'chore:    构建过程或辅助工具的变动' },
+    { value: 'revert', name: 'revert:   回退' },
+    { value: 'build', name: 'build:    打包' }
+  ],
+  // 消息步骤
+  messages: {
+    type: '请选择提交类型:',
+    customScope: '请输入修改范围(可选):',
+    subject: '请简要描述提交(必填):',
+    body: '请输入详细描述(可选):',
+    footer: '请输入要关闭的issue(可选):',
+    confirmCommit: '确认使用以上信息提交？(y/n/e/h)'
+  },
+  // 跳过问题
+  skipQuestions: ['body', 'footer'],
+  // subject文字长度默认是72
+  subjectLimit: 72
+}
+```
+
+5. 使用 `git cz` 代替 `git commit`,即可看到提示内容
+
+---
+
+---
+url: /lodash/getRawTag.md
+---
+# getRawTag
+
+## 功能概述
+
+`getRawTag` 函数是 `Lodash` 中一个重要的内部工具函数，主要用于获取对象的原始类型标签。它通过巧妙的方式解决了 `Symbol.toStringTag` 可能被篡改导致的类型误判问题，是 `Lodash` 类型检测系统中的关键组件。
+
+## 源码实现
+
+```js
+ function getRawTag(value) {
+  // 检查属性是否为对象自有
+  var isOwn = hasOwnProperty.call(value, symToStringTag),
+      tag = value[symToStringTag]; // 保存原始标签值
+
+  try {
+     // 尝试临时屏蔽标签
+    value[symToStringTag] = undefined;
+    // 标记已屏蔽
+    var unmasked = true;
+  } catch (e) {}
+ // 获取类型标签
+  var result = nativeObjectToString.call(value);
+  // 如果已屏蔽
+  if (unmasked) {
+    if (isOwn) {
+      // 恢复自有属性
+      value[symToStringTag] = tag;
+    } else {
+       // 删除非自有属性，即删除临时添加的 undefined
+      delete value[symToStringTag];
+    }
+  }
+  return result;
+}
+
+```
+
+## 实现原理解析
+
+### 1. 属性检查与保护：
+
+函数首先通过 `hasOwnProperty.call(value, symToStringTag)` 检查 `Symbol.toStringTag` 是否为对象的自有属性。这一步骤非常重要
+
+```
+ - 区分属性是直接定义在对象上还是继承自原型链
+ - 避免误操作原型链上的属性
+ - 为后续的属性恢复做准备
+```
+
+### 2. 临时屏蔽机制
+
+函数采用了一个巧妙的临时屏蔽机制：
+
+```js
+  try {
+  value[symToStringTag] = undefined;
+  var unmasked = true;
+} catch (e) {}
+```
+
+这个机制的目的是:
+
+* 通过将 `Symbol.toStringTag` 设置为 `undefined`，强制 Object.prototype.toString 返回对象的原始类型标签
+* 使用 try-catch 块来处理可能的属性修改限制
+
+### 3. 异常处理的必要性
+
+在某些情况下，对象的 Symbol.toStringTag 属性可能无法修改，比如：
+
+```js
+  // 示例：不可扩展对象
+  "use strict";
+  const obj = Object.freeze({
+    [Symbol.toStringTag]: "CustomTag",
+  });
+  try {
+    obj[Symbol.toStringTag] = undefined; // 抛出 TypeError
+  } catch (e) {}
+  // 报错信息
+  /**
+  * TypeError: Cannot assign to read only property 'Symbol(Symbol.toStringTag)' of object * '#<Object>'
+  */ 
+
+```
+
+报错以后，也就意味着，我们无法通过修改属性值来获取原始标签。也就是 Object.freeze 场景下，我们无法获取原始标签。
+
+### 4. 恢复属性值
+
+函数最后会根据属性的原始状态进行恢复：
+
+```js
+ if (unmasked) {
+   if (isOwn) {
+     value[symToStringTag] = tag;
+   } else {
+     delete value[symToStringTag];
+   }
+ }
+
+```
+
+操作完成后，若标签是对象自有属性则恢复原值，否则删除临时修改。
+
+## 总结
+
+getRawTag 通过临时修改对象属性的方式，解决了 Symbol.toStringTag 被篡改导致的类型误判问题，是 Lodash 类型检测体系中防御性设计的典型体现。其实现兼顾了准确性、兼容性和性能优化，确保在复杂环境下仍能可靠工作。
+
+---
+
+---
+url: /javascript/Git.md
+---
+# Git 常用命令
+
+```shell
+git init # 初始化一个 Git 项目目录
+git clone <url> # 克隆一个远程仓库到本地 #查看变动的文件git status
+git log #查看提交历史
+git add -A # 将变动添加到暂存区
+git commit -m 'message' # 提交变动
+git pull #拉取远程代码
+git push #推送代码到远端
+git branch # 列出所有本地分支
+git branch -r # 列出所有远程分支git merge develop# 将 develop 分支合并到当前分支git branch <name>#新建一个新分支 但仍在当前分支
+git checkout -b <name> # 新建一个新分支并切换到该分支
+git checkout <branch-name> # 切换分支
+git branch -m <new-name> #重命名当前分支
+git branch -d <branch-name> # 删除指定分支
+git rm <file-name> # 将文件从暂存区和工作区中删除
+git stash #将更改存储在脏工作目录中
+git diff <branch-A>..<branch-B> # 查看A中有而B没有的git rebase <branch-name> # 合并/删除提交
+git cherry-pick <commit> # 将指定的提交提取到当前分支gitconfig --list # 显示当前Git配置git tag <tag> # 基于当前 commit 新建一个 tag
+```
+
+---
+
+---
+url: /javascript/h5.md
+---
+# H5 App开发技术如何进行选型 ？
+
+按照目前APP开发分类，主要分为：
+
+1. 原生 APP（Android iOS flutter  React Native）
+2. WEB APP
+3. Hybird APP（混合 APP）
+
+## 三种开发模式对比
+
+### 原生 APP
+
+* 缺点：
+  1. 需要开发两套代码
+  2. 旧版本出更新，必须重新下载更新，无法及时更新修复
+  3. 发版审核时间长，无法随时更新
+
+### Web APP
+
+* 优点：
+  1. 入门简单，成本低
+  2. 可以同步更新
+  3. 可以跨平台
+* 缺点：
+  1. 不能直接访问设备和离线存储，功能受限(相机，蓝牙)
+  2. 音视频体验不好
+  3. 兼容性问题多
+
+## 混合APP
+
+* 优点
+  1. 开发效率高
+  2. 更新和部署方便，不需要审核，只需要在服务器端部署
+  3. 代码维护方便，版本更新快，成本低
+* 缺点
+  1. 需要了解 原生开发 才能更好的开发 h5
+  2. 需要熟悉 原生开发 与 h5 的各种通信和兼容性问题
+
+## 什么是 Hybrid App
+
+`Hybrid App` 指 原生 app 和 Web App 的结合体。它主要是已 JavaScript + Native 两者结合互相调用实用。
+
+混合App的原生外壳成为“容器”，内部隐藏的浏览器，通常使用系统提供的网页渲染控件（web view），也可以自己内置一个流浪起内核。结构上，混合App 从上到下分为三层：HTML5网页层，网页引擎层，容器层。
+
+## 为什么要采用 Hybrid App
+
+Hybrid App 主要用来优化 原生APP 和 Web App 的缺点诞生的新技术，但也有自己的不足。
+
+* 优点
+  1. 跨平台-- Web 技术是跨平台的额，开发者只写一次页面，就能支持多个平台。也就是说，混合Aapp 只需要一个团队就够了，开发成本较低
+  2. 灵活性--混合App 的灵活性大，和容易集成多种功能。一方面，混合App容易加载外部的h5 页面，实现App的插件结构；另一方面，Web 页面可以方便调用外部的Web服务。
+  3. 开发方便-- Web 页面的调试和构建，远比原生控件简单省时。页面的更新也容易，只有在服务器上发布新版本，触发容器内更新就可以了。另外，Web开发人员也比较容易招聘，传统的前端程序员可以承担开发任务
+* 缺点
+  1. 性能不如 原生App，但相对原生轻量
+  2. 页面跨平台，无法保证多平台统一。
+  3. 需要前端人员有 原生开发经验，才能完美的上手开发出体验比较好的混合app。
+
+## 混合开发任务的分配原则
+
+1. 业务关联性强的 h5 做
+2. h5 和 原生 都能做的，尽量使用h5 来做
+3. h5 做不了的，原生做
+4. 交互性强的 原生做
+
+## 原生 与 h5 交互
+
+原生 与 h5 交互主要采用的 JSBridge。
+
+JSBridge 给 javascript 提供调用 Native 功能的接口，让混合开发中的前端部分可以方便地使用 Native 的功能(例如：地址位置，摄像头)。jsbridge 的功能不知调用 Native 功能这么简单宽泛。实际上，jsbridge 就像其名称中的Bridge 的意义一样，是Native 和非 Native 之间的桥梁，它的核心是构建 Native和 非Native间消息通信的通道，而且这个通信的通道是双向的额。
+
+双向通信的通道：
+
+* JS 向 Native 发送消息：调用相关功能，通知 Native 当之前 JS 的相关状态等；
+* Native 向 JS 发送消息：回溯调用结果，消息推送，通知 JS 当前 Native 的状态等。
+
+## JSBridge 两种实现方式
+
+* 拦截web view的URL的Scheme
+  1. 优点：兼容心好
+  2. 缺点：不直观，URL长度有限制
+* 向web view注入js API
+
+## JSBridge 的实现
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <style>
+    * {
+      font-size: 28px;
+    }
+  </style>
+</head>
+<body>
+  JSBridge 测试页面
+  <div>
+    <input id="editText" type="text" placeholder="输入框内容s">
+  </div>
+  <div> 
+    <button id="showBtn">显示Native</button>
+  </div>
+  <div> 
+    <button id="showBtn2">获取Native输入</button>
+  </div>
+  <script>
+    let id = 1;
+    const callbackMap = {}
+    window.jssdk = {
+      // 从native点击后获取web的输入值
+      getWebEditTextValue(callbakcId) {
+        const editText = document.getElementById('editText')
+        NativeBridge.receiveMessage(callbakcId, editText.value)
+      },
+
+      // 从web端获取native的输入值
+      getNativeEditTextValue(callback) {
+        const callbakcId = id++
+        callbackMap[id] = callback
+        NativeBridge.getNativeEditTextValue(callbakcId)
+      },
+      // 接受回调函数
+      recevieMessage(callbakcId, value) {
+        if(callbackMap[callbakcId]) {
+          callbackMap[callbakcId](value)
+        }
+      }
+    }
+
+
+    window.showWebDialog = (text) => {
+      alert(text)
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const editText = document.getElementById('editText');
+      const showBtn = document.getElementById('showBtn');
+      const showBtn2 = document.getElementById('showBtn2');
+      
+      console.log(showBtn2, 'showBtn2');
+      showBtn.addEventListener('click', () => {
+        const inputValue = editText.value;
+        showNativeDialog(inputValue)
+      })
+      showBtn2.addEventListener('click', () => {
+
+        window.jssdk.getNativeEditTextValue((value) => {
+          window.alert('from Native inputValue is '+ value)
+        })
+      })
+    })
+
+    function showNativeDialog(text) {
+      // 方式一：URL schema 
+      // window.alert('JSBridge://showWebDialog?text='+ text)
+      // 方式二：JS API注入
+      window.NativeBridge.showNativeDialog(text)
+
+    }
+
+  </script>
+</body>
+</html>
+```
+
+相关资料参考：
+
+[js-bridge(混合开发前端与客户端通信)封装思路](https://blog.csdn.net/weixin_44064067/article/details/127802499)
+
+[H5 App开发技术如何进行选型 ？](https://mp.weixin.qq.com/s/jF9wWRKygzL2OE8Ormo-vA)
+
+---
+
+---
+url: /lodash/isFunction.md
+---
+# isFunction
+
+## 功能概述
+
+`isFunction` 函数用于检查一个值是否为函数类型。它能够准确识别各种函数形式，包括普通函数、生成器函数、异步函数和代理函数等。
+
+## 源码实现
+
+```js
+function isFunction(value) {
+// 排除非对象类型的值
+if (!isObject(value)) {
+    return false;
+}
+// The use of `Object#toString` avoids issues with the `typeof` operator
+// in Safari 9 which returns 'object' for typed arrays and other constructors.
+var tag = baseGetTag(value);
+    return tag == funcTag || tag == genTag || tag == asyncTag || tag == proxyTag;
+}
+
+```
+
+## 实现原理解析
+
+### 1. 排除非对象类型的值
+
+```js
+if (!isObject(value)) {
+  return false;
+}
+```
+
+JavaScript 中函数本质是对象，排除非对象类型的值，确保仅对象类型的值进入后续类型判断。
+
+### 2. 内部标签检查
+
+```js
+var tag = baseGetTag(value);
+```
+
+使用 baseGetTag 函数（相对准确）获取值的内部 \[\[Class]] 标签，例如：
+
+```js
+baseGetTag(function () {}); // "[object Function]"
+baseGetTag(function* () {}); // "[object GeneratorFunction]"
+baseGetTag(async function () {}); // "[object AsyncFunction]"
+baseGetTag(new Proxy({}, {})); // "[object Proxy]"
+```
+
+### 3. 函数类型匹配
+
+最后一步是验证对象的构造函数：
+
+```js
+return tag == funcTag || tag == genTag || tag == asyncTag || tag == proxyTag;
+
+```
+
+通过检查标签值来匹配不同类型的函数：
+
+* funcTag：普通函数标签 '\[object Function]'
+* genTag：生成器函数标签 '\[object GeneratorFunction]'
+* asyncTag：异步函数标签 '\[object AsyncFunction]'
+* proxyTag：代理函数标签 '\[object Proxy]'
+
+### 4. 示例
+
+```js
+// 普通函数
+function foo() {}
+isFunction(foo); // => true
+
+// 箭头函数
+const arrow = () => {};
+isFunction(arrow); // => true
+
+// 异步函数
+async function asyncFoo() {}
+isFunction(asyncFoo); // => true
+
+// 生成器函数
+function* generator() {}
+isFunction(generator); // => true
+
+// 类
+class MyClass {}
+isFunction(MyClass); // => true
+
+// 非函数类型
+isFunction(42); // => false
+isFunction("function"); // => false
+isFunction({}); // => false
+isFunction([]); // => false
+isFunction(null); // => false
+
+```
+
+## 总结
+
+`isPlainObject` 该函数通过 类型过滤 + 标签校验 的组合策略，精准识别 JavaScript 中的函数类型，同时规避了 typeof 在旧版浏览器中的兼容性问题
+
+---
+
+---
+url: /lodash/isObject.md
+---
+# isObject
+
+## 功能概述
+
+`isObject` 函数是 `Lodash` 库中的一个函数，用于判断一个值是否为对象（object）。它返回一个布尔值，表示给定的值是否为对象。支持数组、函数、正则表达式、数值、字符串等。
+
+## 源码实现
+
+```js
+function isObject(value) {
+  // 处理 null 和 undefined 值的情况
+  var type = typeof value;
+  return value != null && (type == 'object' || type == 'function');
+}
+
+
+```
+
+## 实现原理解析
+
+### 1. 类型获取
+
+函数首先使用 `typeof` 操作符获取值的类型。对于基本类型（如字符串、数字、布尔值），`typeof` 会返回它们的类型字符串。对于对象（包括数组、函数、正则表达式等），`typeof` 会返回 "object"。
+
+```js
+var type = typeof value;
+```
+
+### 2. 非空判断
+
+函数使用 `value!= null` 来判断值是否为 null 或 undefined。这是因为 `null` 和 `undefined` 都不是对象，所以它们的类型判断应该返回 false。
+
+```js
+return value!= null && (type == 'object' || type == 'function');
+```
+
+### 3. 对象类型判断
+
+函数使用 `type == 'object' || type == 'function'` 来判断值是否为对象类型。对于数组、函数、正则表达式等，它们的类型字符串都是 "object"，所以需要额外判断它们的类型。
+
+```js
+return value!= null && (type == 'object' || type == 'function');
+```
+
+## 示例
+
+```js
+isObject({}); // true
+isObject([]); // true
+isObject(function() {}); // true
+isObject(/[a-z]/); // true
+isObject(42); // false
+isObject('str'); // false
+isObject(null); // false
+isObject(undefined); // false
+isObject([1, 2, 3]); // true
+isObject({ key: 'value' }); // true
+isObject(function() { return 'Hello'; }); // true
+```
+
+## 总结
+
+`isObject` 函数是 `Lodash` 库中的一个简单函数，用于判断一个值是否为对象。它的实现非常简单，主要是通过 `typeof` 操作符和 `!= null` 来判断值的类型。
+
+---
+
+---
+url: /lodash/isObjectLike.md
+---
+# isObjectLike
+
+## 功能概述
+
+`isObjectLike` 函数是 `Lodash` 库中的一个简单函数，用于判断一个值是否为对象。它的实现非常简单，主要是通过 `typeof` 操作符和 `!= null` 来判断值的类型。
+
+## 源码实现
+
+```js
+function isObjectLike(value) {
+  return value != null && typeof value == "object";
+}
+
+```
+
+## 实现原理解析
+
+### 1. 空值排除
+
+函数首先使用 `value!= null` 来判断值是否为 null 或 undefined。这是因为 `null` 和 `undefined` 都不是对象，所以它们的类型判断应该返回 false。
+
+```js
+value != null;
+```
+
+这个条件检查的特点：
+
+* 使用宽松相等运算符 !=，可以同时排除 null 和 undefined
+* 避免了 typeof null === 'object' 的误判
+* 确保了后续类型检查的安全性
+
+### 2. 类型判断
+
+函数使用 `typeof value == "object"` 来判断值的类型。对于数组、函数、正则表达式等，它们的类型字符串都是 "object"，所以需要额外判断它们的类型。
+
+```js
+  typeof value == "object";
+```
+
+* 使用 typeof 操作符获取值的类型
+* 严格匹配 'object' 字符串
+* 不同于 isObject，不包含函数类型的判断
+
+### 3. 判断逻辑分析
+
+通过组合这两个条件，isObjectLike 可以准确识别：
+
+## 示例
+
+```js
+// 返回 true 的情况
+isObjectLike({}); // true
+isObjectLike([1, 2, 3]); // true
+isObjectLike(new Date()); // true
+isObjectLike(new Error()); // true
+
+// 返回 false 的情况
+isObjectLike(null); // false
+isObjectLike(undefined); // false
+isObjectLike(function () {}); // false
+isObjectLike("hello"); // false
+isObjectLike(42); // false
+
+```
+
+## 总结
+
+`isObjectLike` 函数通过简洁的实现完成了类对象类型的检测，其特点包括：
+
+* 使用空值检查避免了常见的 null 误判
+* 通过 typeof 实现基础类型过滤
+* 与 isObject 形成互补
+* 为其他类型检测函数（如 isArrayLike、isPlainObject 等）提供基础支持
+
+---
+
+---
+url: /lodash/isPlainObject.md
+---
+# isPlainObject
+
+## 功能概述
+
+`isPlainObject` 函数是 `Lodash` 库中的一个函数，用于判断一个值是否为普通对象（plain object）。它返回一个布尔值，表示给定的值是否为普通对象。普通对象是指由 `{}` 或 `new Object()` 创建的对象，并且其原型链上不包含其他构造函数的对象。
+
+## 源码实现
+
+```js
+function isObjectLike(value) {
+  return value != null && typeof value == "object";
+}
+
+```
+
+## 实现原理解析
+
+### 1. 基础类型检查
+
+函数首先进行两个基础检查：
+
+```js
+  if (!isObjectLike(value) || baseGetTag(value) != objectTag) {
+      return false;
+  }
+```
+
+* 通过 `isObjectLike` 确保值是类对象（非 null 的对象）
+* 通过 `baseGetTag` 确保值的原始类型标签是 "\[object Object]"\\
+
+### 2. 原型链检查
+
+获取对象的原型后进行判断：
+
+```js
+var proto = getPrototype(value);
+if (proto === null) {
+  return true;
+}
+```
+
+如果对象没有原型（proto 为 null），则认为是纯粹对象,比如以下创建对象方式
+
+```js
+const obj = {};
+const obj2 = Object.create(null);
+const obj3 = new Object();
+```
+
+### 3. 构造函数验证
+
+最后一步是验证对象的构造函数：
+
+```js
+var Ctor = hasOwnProperty.call(proto, "constructor") && proto.constructor;
+return typeof Ctor == "function" && Ctor instanceof Ctor;
+```
+
+#### 3.1 `hasOwnProperty.call(proto, "constructor")`
+
+确保 `proto` 对象自身拥有 `constructor` 属性，避免因原型污染或手动修改导致的误判。
+
+```js
+
+// 假设原型对象被修改，丢失了 constructor 属性
+const obj = Object.create({ __proto__: null });
+obj.constructor = null; // 手动删除 constructor 属性
+// 若不检查 hasOwnProperty，直接通过 proto.constructor 获取会得到 undefined
+// 导致后续类型判断失败
+```
+
+#### 3.2 `proto.constructor`
+
+获取原型链中对象的构造函数。
+
+```js
+const obj = new (function Custom() {})();
+const proto = Object.getPrototypeOf(obj); // 获取原型对象
+// proto.constructor 指向 Custom 函数（自定义构造函数）
+// 若 proto.constructor 为 undefined（如 Object.create(null)），则跳过后续检查
+```
+
+#### 3.3 `typeof Ctor == "function"`
+
+过滤掉非函数类型的构造器（如字符串、数字等），确保后续逻辑安全。
+
+```js
+const obj = {};
+// 将 constructor 属性设为字符串
+Object.setPrototypeOf(obj, { constructor: "not a function" });
+// Ctor 为 "not a function"（字符串类型），typeof Ctor 为 "string"，条件不成立
+```
+
+#### 3.4 `Ctor instanceof Ctor`
+
+作用：确保构造函数未被篡改或污染，防止通过修改原型链绕过类型检查。
+
+```js
+
+// 假设原型链被恶意修改
+function Malicious() {}
+Malicious.prototype = Object.create(Array.prototype); // 将原型指向 Array.prototype
+const obj = new Malicious();
+const proto = Object.getPrototypeOf(obj); // 获取原型对象
+const Ctor = proto.constructor; // Ctor 指向 Malicious 函数
+// Malicious 函数的原型被修改为 Array.prototype，此时 Ctor instanceof Ctor 为 false
+```
+
+#### 3.5 `funcToString.call(Ctor) === objectCtorString`
+
+区分 Object 构造函数与其他自定义构造函数（如 Array、Date 等），确保仅纯对象通过验证。
+
+```js
+// 自定义构造函数
+function Custom() {}
+const obj = new Custom();
+const proto = Object.getPrototypeOf(obj); // 获取原型对象
+const Ctor = proto.constructor; // Ctor 指向 Custom 函数
+// funcToString.call(Ctor) 返回 "[object Function]"，与 objectCtorString（"[object Object]"）不匹配
+```
+
+这些条件共同确保了：
+
+* 原型链未被篡改（条件 1、4、5）
+* 构造函数类型正确（条件 3、5）
+* 仅通过 {} 或 new Object() 创建的纯对象通过验证（条件 2、4、5）
+
+## 总结
+
+`isPlainObject` 函数通过多层次的检查机制，准确识别纯粹对象：
+
+* 首先确保值是对象类型且具有正确的类型标签
+* 然后检查原型链，处理无原型对象的特殊情况
+* 最后通过构造函数的严格验证，确保对象是通过 Object 构造函数或对象字面量创建F
+
+---
+
+---
+url: /javascript.md
+---
+# JavaScript
+
+## 原始类型
+
+### 七种原始类型
+
+* string
+* number
+* boolean
+* null
+* undefined
+* Symbol
+* bigInt
+
+## 对象类型
+
+:::tip
+在 JavaScript 中，除了原始类型，其他的都是对象类型，对象类型存储的是地址，而原始类型存储的是值。
+:::
+
+```js
+let a = [];
+let b = a;
+a.push(0)
+console.log(b); // [0]
+```
+
+在以上代码中，创建了一个对象类型a(数组)，再把a的地址赋值给了变量b，最后改变a的值，打印b时，b的值也同步发生了改变，因为它们在内存中使用的是同一个地址，改变其中任何一变量的值，都会影响到其他变量。
+
+## apply()与call()的区别
+
+都说温故知新，这不翻翻之前收藏的文章，发现了这篇并打算记录下来。
+
+JavaScript 中的每一个 Function 对象都有一个 apply() 方法和 call() 方法，它们的语法分别为
+
+```js
+/**
+ * apply() 方法
+ */
+function.apply(thisObj[, argArray])
+
+/**
+ * call() 方法
+ */
+function.call(thisObj[,arg1,[,arg2,[,...grnN]]])
+```
+
+它们各自的定义：
+`apply` 调用一个对象的一个方法，用另一个对象替换当前对象。例如：B.apply(A, arguments);即 A 对象应用B对象的方法。
+
+`call` 调用一个对象的一个方法，用另一个对象替换当前对象。例如：B.call(A,arg1,arg2);即 A 对象调用B对象的方法。
+
+**它们的共同之处**：都可以用来代替另一个对象调用一个方法，将一个函数的对象上下文从初始的上下文改变为由 `thisObj` 指定的心对象
+
+**它们的不同之处**：
+`apply()`: 最多只能有两个参数-- 新this对象和一个数组 `argArray` 。如果给该防范传递多个参数，则把参数都写进这个数组里面，当然，即使只有一个参数，也要写进数组里。如果 `argArray` 不是一个有效的书组或者 `arguments` 对象，那么将导致一个 TypeError。如果没用提供 `argArray` 和 `thisObj` 任何一个参数，那么 `Global` 对象将被用做 `thisObj`,并且无法传递任何参数。
+
+`call`： 它可以接受多个参数，第一个参数与 `apply` 一样，后面则是一串参数列表。这个方法主要用在 js 对象各个方法相互调用的时候，使当前 `this` 实例指针保持一致，或者在特殊情况下需要改变 `this` 指针。如果没有提供 `thisObj` 参数，那么 `Global` 对象被用做 `thisObj`
+
+实际上，`apply` 和 `call` 的功能是一样的，只是传入的参数列表形式不同。
+
+**示例代码：**
+
+1. 基本用法
+   ```js
+    function add(a,b) {
+    return a + b;
+    }
+
+    function sub(a,b) {
+    return a - b;
+    }
+
+    var a1 = add.apply(sub, [4,2])
+    var a2 = sub.apply(add, [4,2])
+
+    console.log(a1) // 6
+    console.log(a2) // 2
+    
+    var a1 = add.call(sub, 4,2)
+   ```
+2. 实现继承
+   ```js
+   function Animal(name) {
+    this.name = name;
+    this.showName = function() {
+      console.log(this.name);
+    }
+   }
+
+   function Cat(name) {
+    Animal.apply(this, [name])
+   }
+
+   var cat = new Cat('咕咕')
+   cat.showName();
+
+   // call 用法
+   Animal.call(this, name)
+
+   ```
+3. 多重继承
+   ```js
+    function Class10() {
+      this.showSub = function(a,b) {
+        console.log(a - b);
+      }
+    }
+
+    function Class11() {
+      this.showAdd = function() {
+        console.log(a + b);****
+      }
+    }
+
+    function Class12() {
+      Class10.apply(this);
+      Class11.apply(this);
+
+      // Class10.call(this);
+      // Class11.call(this);
+    }
+
+    var c2 = new Class12()
+    c2.showSub(3,1) // 2
+    c2.showAdd(3,1) // 4
+   ```
+
+`apply` 的一些其他巧妙用法
+
+1. `Math.max` 可以实现得到数组中最大的一项：
+   因为 `Math.max` 不支持 `Math.max([params1,params2])` 也就是数组，但是它支持 `Math.max(params1,params2)` ，所以根据 `apply` 的特点来解决 `var max = Math.max.apply(null, array)` ，这样就很轻易的可以得倒一个数组中的最大项 (`apply` 会将一个数组转换为一个参数接个参数的方式传递给方法)
+   这块在调用的时候第一个参数给了 `null` ，这是因为没有对象去调用这个方法，我只需要用这个方法帮我运算，得到返回的结果就行，所以直接传递了一个`null` 过去。
+   用这种方法也可以实现得到数组中的最小项：`Math.min.apply(null,array)`
+2. `Array.prototype.push` 可以实现两个数组的合并
+   同样 `push` 方法没有提供`push`一个数组，但是它提供了`push(param1,param2...paramN)`，同样也可以用apply来转换一下这个数组，即：
+   ```js
+   var arr1 = new Array([1,2,3])
+   var arr2 = new Array([4,5,6])
+   Array.prototype.push.apply(arr1, arr2)
+   ```
+   也可以这样理解，arr1调用了push方法，参数是通过apply将数组转换为参数列表的集合
+   通常在什么情况下，可以使用apply类似Math.max等之类的特殊用法
+   一般在目标函数只需要n个参数列表，而不接收一个数组的形式，可以通过apply的方式巧妙地解决这个问题。
+
+## Proxy和defineProperty的区别
+
+### 前言
+
+为什么会有这个标题呢？起因是在学习Vue3源码里看到的全面采用了ES6里`Proxy`。遂想到和Vue2里的`definePropery`有什么区别。
+
+### 什么是`Proxy`
+
+`Proxy`是ES6推出的一个类，给对象架设一层拦截器，但凡要`访问`和`修改`这个对象上的值或者属性，都必须先经过这层拦截器，`Proxy`也叫`代理器`，它代理了对对象的操作。那和`Object.defineProperty`的区别
+
+### 什么是`Object.defineProperty`
+
+`Object.defineProperty`是对对象上的属性进行新增或者修改，有2种写法，`数据描述符`和`访问器描述符`
+
+```javascript
+const obj = {
+	name: 'Chrome';
+}
+
+// 数据描述符
+Object.defineProperty(obj, 'age',{
+  configurable: true, // 这个定义是否可以被delete
+  enumerable: true, // 这个值是否可以被for in 枚举,或者Object.keys获取到
+  writable: true, // 定义是否可以被修改
+  value: '100'
+})
+// 访问器描述符
+Object.defineProperty(obj, 'child', {
+	configurable: true,
+  enumerable: true,
+  set(value) {
+  	console.log(value)
+  },
+  get() {
+  	console.log(this.value)
+  }
+})
+```
+
+### `Object.defineProperty`和 `Proxy`的区别
+
+* `Object.defineProperty`对对象自身做修改，而`Proxy`只是在Object基础上一层拦截，不修改原对象
+* 监听不了数组的变化
+* 监听手段比较单一，只能监听`set`和`get`，`Proxy`有十几种监听
+* 必须得把所有的属性全部添加`defineProperty`。`Proxy`对整个对象都会进行拦截
+
+### 1、为什么`Proxy`不用遍历每个属性
+
+```javascript
+var needProxyObj = {name: 'chrome', age:'800'}
+var proxyObj = new Proxy(needProxyObj, {
+    set(target, key, value, receiver) {
+        consnole.log('proxy修改了', key, value)
+    }
+})
+proxyObj.name = 'safari'; // proxy修改了 name safari
+
+```
+
+Proxy是代理在`对象`级别的，defineProperty是代理到`静态的值`级别，所以Proxy的强大就在这里
+
+### 2、为什么`Proxy`不修改原对象，为什么`Proxy`是在对象上面加一层代理?
+
+```javascript
+var needProxyObj = {name: 'chrome', age:'800'}
+var proxyObj = new Proxy(needProxyObj, {
+    set(target, key, value, receiver) {
+        consnole.log('proxy修改了', key, value)
+    }
+})
+proxyObj.name = 'safari'; // proxy修改了 name safari
+needProxyObj.child = 'sun'; // sun , 没有被拦截
+console.log(proxyObj.child); // sun
+needProxyObj === proxyObj; // false
+```
+
+看到没, 当我修改被代理之前的对象的时候，拦截器没有起作用，并且被代理的新对象proxyObj的child值也跟着变化了, 但是needProxyObj === proxyObj; // false, 这又是蜜汁操作之一了。其实也好理解，代理对象和被代理的对象，他们在表面上是不一样的，其实在底层是同一个对象。
+
+### 3、为什么我又说Proxy不修改原对象也是不准确的。
+
+这就涉及到Proxy和defineProperty的一个共同特性，不支持对象嵌套。需要递归去实现。
+
+```javascript
+var person = {
+    name: '阿巴',
+    age: '100',
+    child: {
+        name: '阿巴的儿子',
+        age: '88'
+    }
+}
+var proxyEvent = {
+       
+}
+var deepProxy = function(obj) {
+    if (typeof obj === 'object') {
+        Object.entries(obj).forEach(([key, value]) => {
+            obj[key] = deepProxy(value);
+        })
+        return new Proxy(obj, proxyEvent)
+    }
+    return obj;
+}
+deepProxy(person);
+```
+
+![image.png](./img/proxy-1.png)
+这就是我说为什么不准确的原因了, 所以万不得已，真心不推荐用递归的方式去设置Proxy, 当然，有办法递归设置Proxy，咱们就有办法给它还原
+
+```javascript
+
+function proxyToObject(proxyObj) {
+    const next = function (obj, mergeObj) {
+        if (typeof obj === 'object') {
+            Object.entries(obj).forEach(([key, value]) => {
+                if (!value) {
+                    mergeObj[key] = value;
+                } else if (value instanceof Array) {
+                    mergeObj[key] = next(value, []);
+                } else if (value instanceof Object) {
+                    mergeObj[key] = next(value, {});
+                } else {
+                    mergeObj[key] = value;
+                }
+            })
+        }
+        if (obj && obj instanceof Array) {
+            for (let value of obj) {
+                mergeObj.push(next(value, {}));
+            }
+        }
+        return mergeObj;
+    }
+    return next(proxyObj, {});
+}
+proxyToObject(person); // 然后就恢复了
+```
+
+### 4、为什么说Proxy可以监听数组的访问
+
+我们都知道在Vue中，由于defineProperty的局限性，数组的push被认为是变异的特性，为什么vue的push可以被监听到呢，是因为vue把数组对象的push给重写了，进行拦截，这导致增加了不少额外的操作
+
+```javascript
+// 来看看Proxy怎么实现
+var arr = [1,2,3,4];
+let arrProxy = new Proxy(arr, {
+    get(target, propKey) {
+        if (Array.isArray(target) && typeof Array.prototype[propKey] === 'function') {
+            Promise.resolve().then(e => {
+                console.log('操作了数组', propKey);
+            })
+        }
+        return target[propKey]
+    }
+})
+arrProxy.push(5);
+console.log('push结束了');
+// push结束了
+// 操作了数组 push
+
+```
+
+为什么要使用Promise.resolve(), 是因为push是一个同步操作，在访问 push的时候还没有执行这个函数，所以想在push之后做一些事情，就可以用这个微任务机制来把操作滞后
+
+---
+
+---
+url: /javascript/advance.md
+---
+# JavaScript 进阶
+
+## 手写 `getQueryString`
+
+```ts
+var url = 'https://www.baidu.com/s?id=123&name=why&phone=13876769797';
+
+export const getQueryString = (name: string, url: string): string => {
+  let str = '';
+  let index = url.indexOf('?');
+  if(index == -1) return undefined
+  
+  str = index.subtring(index + 1).split('&')
+
+  for(let i = 0; i < strs.length; i++) {
+    let splitItem = str[i].split('=')
+    if(splitItem[0] == name) {
+      return splitItem[0]
+    }
+  }
+}
+
+getQueryString('name') // why
+```
+
+## 手写自己的 `setInterval`
+
+:::tip
+用 `requestAnimationFrame` 实现自己的 `setInterval` 方法
+:::
+
+```js
+let obj = {
+  timer: null,
+  setInterval: function(callback, interval) {
+    const now = Date.now;
+    let startTime = now()
+    let endTime = startTime;
+    const self = this;
+    const loop = function() {
+      self.timer = requestAnimationFrame(loop)
+      endTime = now();
+      if(endTime - startTime >= interval) {
+        startTime = endTime = now()
+        callback && callback()
+      }
+    }
+    this.timer = requestAnimationFrame(loop)
+    return this.timer
+  }
+  clearInterval: function() {
+    cancelAnimationFrame(this.timer)
+  }
+}
+
+🌰 :
+let count = 0;
+const timer = obj.setInterval(() => {
+  console.log('interval...')
+  count++
+  if (count >= 3) {
+    obj.clearInterval()
+  } 
+}, 500)
+```
+
+## 手写自己的 `EventBus`
+
+[Demo 地址](https://github.com/gradyll/grady/tree/master/src/examples/eventBus/index.html)
+
+```js
+// 存储事件／回调键值对
+class EventBus {
+  constructor() {
+    this._events = new Map();
+  }
+
+  on(type, fn) {
+    if (!type) throw Error('type is not valid')
+    if (typeof fn !== 'function') throw Error('type is not function')
+    const isValid = this._events.get(type)
+    if (!isValid) {
+      this._events.set(type, [fn])
+    } else {
+      isValid.push(fn)
+    }
+  }
+  emit(type, args) {
+    if (!type) throw Error('type is not valid')
+    const isValid = this._events.get(type)
+    if (isValid) {
+      for (let i = 0; i < isValid.length; i++) {
+        isValid[i](args)
+      }
+    }
+    return true
+  }
+  off(type, fn) {
+    if (!type) throw Error('type is not valid')
+    if (typeof fn !== 'function') throw Error('type is not function')
+    const isValid = this._events.get(type)
+    if (isValid.length > 1) {
+      isValid.splice(isValid.findIndex(f => f == fn), 1)
+    } else {
+      this._events.delete(type)
+    }
+  }
+  once(type, fn) {
+    if (!type) throw Error('type is not valid')
+    if (typeof fn !== 'function') throw Error('type is not function')
+    let _self = this
+    function handler() {
+      _self.off(type, handler)
+      fn.apply(null, arguments)
+    }
+    this.on(type, handler)
+  }
+}
+
+// 下面是 测试代码
+function test1(...params) {
+  console.log(11, params)
+}
+
+function test2(...params) {
+  console.log(22, params)
+}
+
+function test3(...params) {
+  console.log(33, params)
+}
+
+function test4(...params) {
+  console.log(params)
+  console.log(33, params)
+}
+
+let eb = new EventBus()
+eb.on('event1', test1)
+eb.on('event1', test2)
+eb.on('event1', test3)
+eb.emit('event1', '第一次')
+eb.off('event1', test1)
+eb.emit('event1', ['第二次1', '第二次2'])
+
+eb.once('once', test4);
+eb.emit('once', '执行一次', 1, 2, 3)
+```
+
+参考地址:
+
+(进军的蜗牛)\[https://www.cnblogs.com/yalong/p/14294497.html]
+
+---
+
+---
+url: /guide/design-pattern.md
+---
+# JavaScript设计模式与开发实践
+
+## 前言
+
+设计模式是经过前人在工作当中总结提炼出来通用的方法，是面向对象软件设计过程中针对特定问题的简洁而优雅的解决方案。
+
+## 总结
+
+设计模式总共有三大类: `创建型模式`、`结构型模式`和`行为型模式`。总共 `23` 种模式
+
+**创建型模式** *Creational Patterns*
+
+* 单例模式(Singleton Pattern): 确保一个类只有一个实例，并提供全局可访问点。
+* 工厂方法模式(Factory Method Pattern): 定义一个创建对象的接口，但由子类决定实例化的类是哪一个。
+* 抽象工厂模式(Abstract Factory Pattern): 提供一个接口，用于创建相关或者依赖对象的家族，而不需要指定具体类。
+* 建造者模式(Builder Pattern): 讲一个复杂对象的构建过程与其表示分离，使得同样的构建过程可以创建不同的表示。
+* 原型模式(Prototype Pattern): 通过复制现有对象来创建新对象，避免了使用new操作符创建对象。
+
+**结构型模式** *Structural Patterns*
+
+* 适配器模式(Adapter Pattern): 将一个类的接口转换成客户端期望的另一个接口。
+* 桥接模式(Bridge Pattern): 将抽象部分与其实现部分分离，使它们可以独立变化。
+* 组合模式(Composite Pattern):将对象组合成树形结构以表示“整体-部分”的层次结构。
+* 装饰者模式(Decorator Pattern)：动态地给一个对象添加额外的职责，而不影响其原始类。
+* 外观模式(Facade Pattern)：为子系统中的一组接口提供一个统一的界面。
+* 享元模式(Flyweight Pattern)：运用共享技术有效地支持大量细粒度的对象。
+* 代理模式(Proxy Pattern)：为其他对象提供一个代理以控制对这个对象的访问。
+
+**行为型模式** *Behavioral Patterns*
+
+* 模板方法模式（Template Method Pattern）：定义一个算法的骨架，而将一些步骤延迟到子类中实现。
+* 命令模式（Command Pattern）：将请求封装成一个对象，使得可以用不同的请求对客户进行参数化。
+* 迭代器模式（Iterator Pattern）：提供一种方法顺序访问一个聚合对象中的各个元素，而不暴露其内部表示。
+* 观察者模式（Observer Pattern）：定义对象间的一种一对多的依赖关系，使得当一个对象改变状态时，所有依赖它的对象都会被通知并自动更新。
+* 中介者模式（Mediator Pattern）：用一个中介对象来封装一系列的对象交互，使对象之间不再直接相互引用。
+* 备忘录模式（Memento Pattern）：在不破坏封装性的前提下，捕获一个对象的内部状态，并在该对象之外保存这个状态。
+* 解释器模式（Interpreter Pattern）：给定一个语言，定义它的文法的一种表示，并定义一个解释器，用来解释语言中的句子。
+* 状态模式（State Pattern）：允许一个对象在其内部状态改变时改变其行为。
+* 策略模式（Strategy Pattern）：定义一系列算法，将每个算法封装起来，并使它们可以互换。
+* 访问者模式（Visitor Pattern）：在不改变数据结构的前提下，增加对数据结构的新操作。
+* 职责链模式（Chain of Responsibility Pattern）：将请求的发送者和接收者解耦，使多个对象都有机会处理该请求。
+
+## 基础知识
+
+:::tip 提示
+编程语言按照数据类型大体可以分为两类，一类是`静态类型语言`，另一类是`动态类型语言`。
+:::
+
+### 静态语言的优缺点
+
+**优点：**
+
+* 能够在编译时发现类型不匹配的错误。
+* 能够对程序进行优化工作，提高程序执行速度。
+
+**缺点：**
+
+* 迫使程序员依照契约编写程序，为每个变量规定数据类型。
+* 规定类型的声明数量过多会增加更多的代码，分散开发业务逻辑。
+
+### 动态语言的优缺点
+
+**优点：**
+
+* 编写的代码数量少，简洁，也更容易理解业务逻辑。
+
+**缺点：**
+
+* 无法保障变量的类型，可能发生与类型相关的错误
+* 规定类型的声明数量过多会增加更多的代码，分散开发业务逻辑。
+
+根据上面的描述可知：***JavaScript 是一门动态语言***
+
+### 鸭子类型
+
+:::tip 概念
+鸭子类型(duck Typing) 通俗说法：“如果它走起路来像鸭子，叫起来像鸭子，那么它就是鸭子”
+:::
+
+```js
+var duck = {
+  duckSinging: function() {
+    console.log('嘎嘎嘎')
+  }
+}
+
+var chicken = {
+  duckSinging: function() {
+    console.log('嘎嘎嘎嘎')
+  }
+}
+
+var choir = []; // 合唱团
+
+var joinChoir = function(animal) {
+  if(animal && typeof animal.duckSinging === 'function') {
+    choir.push(animal);
+    console.log('恭喜加入合唱团')
+    console.log('合唱团已有成员数量:'+ choir.length)
+  }
+}
+
+joinChoir(duck); // 恭喜加入合唱团
+joinChoir(chicken); // 恭喜加入合唱团
+```
+
+### 多态
+
+:::tip 含义
+多态的含义是：同一操作作用于不同的对象上面，可以产生不同的解释和不同的执行结果。
+:::
+
+```js
+var makeSound = function(animal) {
+  if( animal instanceof Duck) {
+    console.log('嘎嘎嘎嘎嘎')
+  } else {
+    console.log('咯咯咯')
+  }
+}
+
+var Duck = function () {};
+var Chicken = function() {};
+makeSound(new Duck())
+makeSound(new Chicken())
+```
+
+这段代码确实体现了“多态性”，当我们分别向鸭和鸡发出“叫唤”的消息时，它们根据此消息作出了各自不同的反应。但这样的“多态性”是无法令人满意的，如果后来又增加了一只动物，比如狗，显然狗的叫声是“汪汪汪”，此时我们必须得改动makeSound函数，才能让狗也发出叫声。修改代码总是危险的，修改的地方越多，程序出错的可能性就越大，而且当动物的种类越来越多时，makeSound有可能变成一个巨大的函数。
+
+**多态背后的思想是将“做什么”和“谁去做以及怎样去做”分离开来，也就是将“不变的事物”与“可能改变的事物”分离开来。** 在这个故事中，动物都会叫，这是不变的，但是不同类型的动物具体怎么叫是可变的。把不变的部分隔离出来，把可变的部分封装起来，这给予了我们扩展程序的能力，程序看起来是可生长的，也是符合开放—封闭原则的，相对于修改代码来说，仅仅增加代码就能完成同样的功能，这显然优雅和安全得多。
+
+#### 优化后的代码
+
+```js
+var makeSound = function( animal ) {
+  animal.sound()
+}
+var Duck = function() {};
+Duck.prototype.sound = function () {
+  console.log('嘎嘎嘎嘎嘎')
+}
+var Chicken = function() {};
+Chicken.prototype.sound = function() {
+  console.log('咯咯咯')
+}
+makeSound(new Duck());
+makeSound(new Chicken())
+
+var Dog = function() {};
+Dog.prototype.sound = function() {
+  console.log('汪汪汪汪')
+}
+makeSound(new Dog())
+```
+
+另外一个例子
+
+```js
+var googleMap = {
+  show: function() {
+    console.log('开始渲染谷歌地图')
+  }
+}
+var baiduMap = {
+  show: function() {
+    console.log('开始渲染百度地图')
+  }
+}
+
+var renderMap = function( map ) {
+  if( map.show instanceof Function) {
+    map.show()
+  }
+}
+
+renderMap(googleMap)
+renderMap(baiduMap)
+
+var aMap = {
+  show: function() {
+    console.log('开始渲染高德地图')
+  }
+}
+renderMap(aMap)
+```
+
+### 封装
+
+封装的目的是将信息隐藏。封装不仅仅是封装数据，也可以是封装实现。还有封装类型和封装变化。
+
+::: code-group
+
+```js [封装数据]
+var myObject = (function() {
+  var _name = 'Seven'; // 私有（private）变量
+  return {
+    getName: function() { // 公开(public) 方法
+      return _name;
+    }
+  }
+})();
+
+console.log(myObject.getName()); // Sven
+console.log(myObject._name) // undefined
+```
+
+```js [封装实现]
+/**
+ * 封装也包含了隐藏实现细节、设计细节以及隐藏对象的类型等
+ * 比如：数组的forEach方法，只需要使用不需要关心内部的具体细节
+ * 即可实现我们想要的数据。
+ */
+
+```
+
+```js [封装类型]
+/**
+ * 封装类型是静态类型语言中一种重要的封装方式。
+ * 一般而言，封装类型是通过抽象类和接口来进行的。
+ * 把对象的真正类型隐藏在抽象类或者接口之后，相比对象的类型，客户更关心对象的行为。
+ * 在许多静态语言的设计模式中，想方设法地去隐藏对象的类型，也是促使这些模式诞生的原因之一。
+ * 比如工厂方法模式、组合模式等。
+ */
+```
+
+```js [封装变化]
+```
+
+:::
+
+## 原型模式
+
+::: tip 提示
+原型模式不单是一种设计模式，也被称为一种编程泛型。
+
+原型模式是通过克隆来创建对象的
+:::
+原型模式的实现关键，是语言本身是否提供了 clone 方法。
+原型模式的真正目的是提供一种便携的方式去创建某个类型的对象。
+
+```js
+var Plane = function() {
+  this.blood = 100;
+  this.attackLevel = 1;
+  this.defenseLevel = 1;
+}
+var plane = new Plane()
+plane.blood = 500;
+plane.attackLevel = 10;
+plane.defenseLevel = 7;
+
+var clonePlane = Object.create(plane)
+
+console.log(clonePlane.blood); // 500
+console.log(clonePlane.attackLevel); // 10
+console.log(clonePlane.defenseLevel); // 7
+
+// 在不支持 Object.create的浏览器
+Object.create = Object.create || function(obj) {
+  var F = function(){}
+  F.prototype = obj;
+  return new F();
+}
+```
+
+## this、call 和 apply
+
+::: tip 什么是 this
+JavaScript 的 this 总是指向一个对象，具体指向哪个对象是运行时基于函数的执行环境动态绑定的，而非函数被声明时的环境。
+:::
+
+### this指向的4种情况：
+
+1. 作为对象的方法调用
+2. 作为普通函数调用
+3. 构造器调用
+4. Function.prototype.call 或者 Function.prototype.apply调用
+
+**第一种：作为对象的方法调用**
+
+```js
+// 当函数作为对象的方法被调用时，this指向该对象
+var obj = {
+  a: 1,
+  getA: function() {
+    alert(this === obj); // 输出: true
+    alert(this.a);       // 输出：1
+  }
+}
+obj.getA()
+```
+
+**第二种：作为普通函数调用**
+
+```js
+/**
+ * 当函数不作为对象的属性被调用时，也就是我们常说的普通函数方式，此时的this 总是指向全局对象。
+ */
+window.name = 'globalName';
+var getName = function() {
+  return this.name;
+}
+console.log(getName()); // globalName
+
+window.name = 'globalName'
+var myObject = {
+  name: 'sven',
+  getName: function() {
+    return this.name;
+  }
+}
+
+var getName = myObject.getName;
+console.log( getName()); // globalName;
+
+```
+
+**第三种：构造器调用**
+
+```js
+var MyClass = function() {
+  this.name = 'seven';
+}
+var obj = new MyClass()
+
+alert(obj.name); // seven
+/**
+ * 当 new 运算符调用函数时，该函数总会返回一个对象，通常情况下，构造器里 this就指向返回的对象
+ */
+```
+
+**第四种：call和 apply**
+
+```js
+var obj1 = {
+  name: 'seven',
+  getName: function() {
+    return this.name;
+  }
+}
+
+var obj2 = {
+  name: 'anne'
+};
+console.log( obj1.getName()); // 输出：seven io'[
+
+console.log(obj1.getName.call(obj2)) // 输出: anne
+```
+
+## call 和 apply 详解
+
+::: tip 区别
+
+1. apply 接受两个参数，第一个参数指定了函数体内this对象的指向，第二个参数为数组或者类数组
+2. call 参数不固定，第一个参数置顶了函数体内 this对象的指向，第二个开始每个参数都会被传入函数里。
+   :::
+
+```js
+// call 和 apply 的使用区别
+var func = function(a,b,c) {
+  alert([a,b,c])
+}
+// 当使用call和apply时，如果第一个参数传递的是null,则此时this指向全局对象
+func.apply(null, [1,2,3])
+func.call(null, 1,2,3)
+```
+
+## call 和 apply 用途
+
+1. 改变this指向
+2. Function.prototype.bind
+3. 借用其他对象的方法
+
+**改变this指向**
+
+```js
+var obj1 = {
+  name: 'seven'
+}
+
+var obj2 = {
+  name: 'Grady'
+}
+
+window.name = 'window'
+
+var getName = function() {
+  return this.name
+}
+
+console.log(getName()) // window
+console.log(getName.call(obj1)) // seven
+console.log(getName.call(obj2)) // Grady
+```
+
+**Function.prototype.bind**
+
+```js
+// 基础版本
+Function.prototype.bind = function(context) {
+  var self = this;
+  return function() {
+    return self.apply(context, arguments)
+  }
+}
+var obj = {
+  name: 'Grady'
+}
+
+var func = function() {
+  alert(this.name)
+}.bind(obj)
+
+func() // Grady
+
+// 完整版的
+
+Function.prototype.bind = function() {
+  var self = this;
+  var context = [].shift.call(arguments)
+  var arg = [].slice.call(arguments)
+  return function() {
+    return self.apply(context, [].concat.call(args, [].slice.call(arguments)))
+  }
+}
+
+var obj = {
+  name: 'seven'
+}
+
+var func = function(a,b,c,d) {
+  alert(this.name) // 输出 seven
+  alert([a,b,c,d]) // 输出 [1,2,3,4]
+}.bind(obj, 1,2)
+
+func(3,4) 
+```
+
+**借用其他对象的方法**
+
+```js
+var A = function(name) {
+  this.name = name
+}
+
+var B = function() {
+  A.apply(this, arguments)
+}
+
+B.prototype.getName = function() {
+  return this.name
+}
+
+var b = new B('Grady')
+console.log(b.getName()) // Grady
+
+```
+
+## 闭包和高阶函数
+
+闭包的形成与变量的作用域和变量的生存周期密切相关。
+
+**变量的作用域** 变量的作用域是指变量的有效范围。
+
+```js
+var a = 1;
+
+var func1 = function() {
+  var b = 2;;
+  var func2 = function() {
+    var c = 3;
+    alert(a) // 1
+    alert(b) // 2
+  }
+  func2()
+  alert(c) // undefined
+}
+func1()
+```
+
+> 在JavaScript中，函数可以用来创造函数作用域。此时的函数像一层半透明的玻璃，在函数里面可以看到外面的变量，而在函数外面则无法看到函数里面的变量。这是因为当在函数中搜索一个变量的时候，如果该函数内并没有声明这个变量，那么此次搜索的过程会随着代码执行环境创建的作用域链往外层逐层搜索，一直搜索到全局对象为止。变量的搜索是从内到外而非从外到内的。
+
+**变量的生命周期**
+
+* 全局变量的生命周期是永久存在的，除非进行主动销毁变量。
+* 局部变量会随着函数的退出而销毁
+
+### 闭包的作用
+
+1. 封装变量
+2. 延续局部变量的生命周期
+
+**封装变量**
+
+```js
+var mult = (function() {
+  var cache = {}
+  var calculate = function () {
+    var a = 1;
+    for(var i= 0, l = arguments.length; i< l; i++) {
+      a = a * arguments[i]
+    }
+    return a
+  }
+  return function() {
+    var arg = Array.prototype.join.call(arguments, '')
+    if(arg in cache) {
+      return cache[arg]
+    }
+    return cache[args] = calculate.apply(null, arguments)
+  }
+})()
+console.log(mult(1,2,3,4)); // 输出24
+```
+
+**延长局部变量的生命周期**
+
+```js
+// 闭包的作用：延续局部变量的寿命
+// 实例：利用img进行数据上报
+var report = (function() {
+  var imgs = [];
+  return function(src) {
+    var img = new Image();
+    imgs.push(img);
+    img.src = src;
+  }
+})()
+```
+
+**闭包和面向对象**
+:::tip
+面向对象能够实现的，闭包也可以实现。
+:::
+
+```js
+var extend = function() {
+  var value = 0;
+  return {
+     call: function() {
+      value++;
+      console.log(value)
+    }
+  }
+}
+var extant = extend()
+
+extend.call(); // 1
+extend.call(); // 2
+extend.call(); // 3
+
+
+var extend = {
+  value: 0,
+  call: function() {
+    this.value++
+    console.log(this.value++)
+  }
+}
+extend.call(); // 1
+extend.call(); // 2
+extend.call(); // 3
+```
+
+## 用闭包实现命令模式
+
+**面向对象形式**
+
+```html
+<html>
+  <body>
+    <button id="execute">点击我执行命令</button>
+    <button id="undo">点击我执行命令</button>
+<script>
+
+var Tv = {
+  open: function(){
+      console.log( '打开电视机' );
+  },
+  close: function(){
+      console.log( '关上电视机' );
+  }
+};
+
+var OpenTvCommand = function( receiver ){
+  this.receiver = receiver;
+};
+
+OpenTvCommand.prototype.execute = function(){
+  this.receiver.open();    // 执行命令，打开电视机
+};
+
+OpenTvCommand.prototype.undo = function(){
+  this.receiver.close();    // 撤销命令，关闭电视机
+};
+
+var setCommand = function( command ){
+  document.getElementById( 'execute' ).onclick = function(){
+      command.execute();     // 输出：打开电视机
+  }
+  document.getElementById( 'undo' ).onclick = function(){
+      command.undo();     // 输出：关闭电视机
+  }
+};
+
+setCommand( new OpenTvCommand( Tv ) );
+
+  </script>
+  </body>
+</html>
+```
+
+**闭包形式**
+
+```js
+var Tv = {
+    open: function(){
+      console.log( ’打开电视机’ );
+    },
+    close: function(){
+        console.log( ’关上电视机’ );
+    }
+};
+
+var createCommand = function( receiver ){
+
+    var execute = function(){
+        return receiver.open();    // 执行命令，打开电视机
+    }
+
+    var undo = function(){
+        return receiver.close();    // 执行命令，关闭电视机
+    }
+
+    return {
+        execute: execute,
+        undo: undo
+    }
+
+};
+
+var setCommand = function( command ){
+    document.getElementById( 'execute' ).onclick = function(){
+        command.execute();     // 输出：打开电视机
+    }
+    document.getElementById( 'undo' ).onclick = function(){
+        command.undo();    // 输出：关闭电视机
+    }
+};
+
+setCommand( createCommand( Tv ) );
+```
+
+### 闭包和缺点
+
+> 局部变量本来应该在函数退出的时候被解除引用，但如果局部变量被封闭在闭包形成的环境中，那么这个局部变量就能一直生存下去。从这个意义上看，闭包的确会使一些数据无法被及时销毁。使用闭包的一部分原因是我们选择主动把一些变量封闭在闭包中，因为可能在以后还需要使用这些变量，把这些变量放在闭包中和放在全局作用域，对内存方面的影响是一致的，这里并不能说成是内存泄露。如果在将来需要回收这些变量，我们可以手动把这些变量设为null。
+
+> 使用闭包的同时比较容易形成循环引用，如果闭包的作用域链中保存着一些DOM节点，这时候就有可能造成内存泄露。但这本身并非闭包的问题，也并非JavaScript的问题。在IE浏览器中，由于BOM和DOM中的对象是使用C++以COM对象的方式实现的，而COM对象的垃圾收集机制采用的是引用计数策略。在基于引用计数策略的垃圾回收机制中，如果两个对象之间形成了循环引用，那么这两个对象都无法被回收，但循环引用造成的内存泄露在本质上也不是闭包造成的。
+
+## 高阶函数
+
+满足高阶函数的条件：
+
+1. 函数可以作为参数传递
+2. 函数可以作为返回值输出
+
+**函数作为参数传递**
+
+```js
+var appendDiv = function(callback) {
+  for(var i = 0; i < 100; i++) {
+    var div = document.createElement('div');
+    div.innerHTML = i
+    document.body.appendChild(div);
+    if(typeof callback == 'function') {
+      callback(div)
+    }
+  }
+}
+
+appendDiv(function(node) {
+  node.style.display = 'none'
+})
+```
+
+**函数作为返回值输出**
+
+```js
+// 高阶函数的应用场景：函数作为返回值输出
+// 应用场景：注册isType方法
+var isType = function(type) {
+  return function(obj) {
+    return Object.prototype.toString.call(obj) === '[object '+ type+']';
+  }
+}
+var isNumber = isType('Number');
+var isString = isType('String');
+var isArray = isType('Array');
+console.log(isNumber(12));      // 输出true
+console.log(isString('abc'));   // 输出true
+console.log(isArray([1,2,3]));  // 输出true
+```
+
+### 高阶函数实现 AOP(面向切面变成)
+
+:::tip AOP
+AOP 是把一些和业务逻辑无关的功能抽离出来。包括(日志统计、安全控制、异常处理)把这些功能抽离出来后，再通过动态织入的方式掺入业务逻辑模块中
+:::
+
+```js
+// 高阶函数的应用场景：实现AOP
+// 应用场景：装饰者模式
+Function.prototype.before = function(beforeFn) {
+  var _self = this;
+  return function() {
+    beforeFn.apply(this,arguments);
+    return _self.apply(this,arguments);
+  }
+}
+Function.prototype.after = function(afterFn) {
+  var _self = this;
+  return function() {
+    var ret = _self.apply(this,arguments);
+    afterFn.apply(this,arguments);
+    return ret;
+  }
+}
+var func = function() {
+  console.log(2);
+}
+func = func.before(function(){
+  console.log(1);
+}).after(function(){
+  console.log(3);
+})
+func();
+```
+
+### 高阶函数的其他用法
+
+**柯里化**:又称部分求值，一个柯里化参数首先会接受一些参数，接受这些参数之后，该函数并不会立即求值，而是继续返回另外一个函数，刚才传入的参数在函数形成的闭包中被保存起来，待到合适的时机一起求值。
+
+```js
+var currying = function( fn ) {
+  var args = [];
+  return function() {
+    if(arguments.length == 0) {
+      return fn.apply(this, args)
+    } else {
+      [].push.apply(args, arguments)
+      return arguments.callee
+    }
+  }
+} 
+
+var cost = (function() {
+  var money = 0;
+  for(var i = 0, len = arguments.length; i < l; i++) {
+    money += arguments[i]
+  }
+  return money
+})()
+
+var coat = currying(cost)
+
+coat(100); // 未真正求值
+coat(200); // 未真正求值
+coat(300); // 未真正求值
+coat();    // 600
+```
+
+## 高阶函数之 函数节流
+
+:::tip 函数节流的场景
+window.onresize事件
+
+mouseover事件
+
+scroll事件
+
+其他
+:::
+
+```js
+
+// 高阶函数其他用法：函数节流
+// 应用场景：window.onresize事件
+var throttle = function(fn,interval) {
+  var timer = null;
+  var firstTime = true;
+  var _self = fn;
+  return function() {
+    var that = this;
+    var args = arguments;
+    
+    // 判断是否第一次执行
+    if(firstTime) {
+      _self.apply(that,args);
+      return firstTime = false
+    }
+    // 判断定时器是否执行完毕
+    if(timer) {
+      return false;
+    }
+    timer = setTimeout(function() {
+      clearTimeout(timer);
+      timer = null;
+      _self.apply(that,args);
+    },interval || 500)
+  }
+}
+window.onresize = throttle(function(){
+  console.log('window onsize');
+}, 500)
+```
+
+## 高阶函数之 防抖(分时截流)
+
+```js
+// 高阶函数其他用法：分时函数
+// 应用场景：分批次创建1000个DOM节点
+
+// 分时函数
+// 参数arr：要填充的数据
+// 参数fn：要分时的函数
+// 参数count：每一次分时的数量
+// 参数interval：分时的间隔
+var timeChunk = function(arr,fn,count,interval) {
+  var timer = null;
+  var data = null;
+  var start = function() {
+    for(var i = 0 ; i < Math.min(count || 1 , arr.length) ; i++) {
+      data = arr.shift();
+      fn(data);
+    }
+  }
+  return function() {
+    timer = setInterval(function(){
+      if(arr.length == 0) {
+        clearInterval(timer);
+        timer = null;
+        return;
+      }
+      start();
+    }, interval || 200)
+  }
+}
+
+var arr = [];
+for(var i = 0 ; i < 1000 ; i++) {
+  arr.push(i);
+}
+
+var renderDOMList = timeChunk(arr, function(data) {
+  var div = document.createElement('div');
+  div.innerHTML = data;
+  document.body.appendChild(div);
+},8,200);
+renderDOMList();
+```
+
+---
+
+---
+url: /guide/design-pattern_2.md
+---
+
+# JavaScript设计模式与开发实践之设计模式
+
+这一部分并没有涵盖 GoF 所提出的 23 种设计模式，只选择其中的 14 种。
+
+## 单例模式
+
+:::tip 定义
+保证一个类只有一个实例，并提供一个访问它的全局访问点。
+:::
+
+**单例模式的用途**
+
+1. 线程池
+2. 全局缓存
+3. 浏览器中的 window
+4. 悬浮窗
+
+```js
+var Singleton = function(name) {
+  this.name = name
+  this.instance = null
+}
+
+Singleton.prototype.getName = function() {
+  alert(this.name)
+}
+
+Singleton.prototype.getInstance = function(name) {
+  if(!this.instance) {
+    this.instance = new Singleton(name)
+  }
+  return this.instance
+}
+
+var a = Singleton.getInstance('sven1')
+var b = Singleton.getInstance('sven2')
+console.log(a === b)
+```
+
+### 透明单例模式
+
+```js
+
+var CreateDiv = (function() {
+  var instance = null;
+  var CreateDiv = function(html) {
+    if(instance) {
+      return instance
+    }
+
+    this.html = html;
+    this.init()
+    instance = this;
+    return instance
+  }
+  CreateDiv.prototype.init = function() {
+    var div = document.createElement('div');
+    div.innerHTML = this.html;
+    document.body.appendChild(div);
+  }
+
+})
+
+```
+
+### 代理模式单例
+
+```js
+var CreateDiv = function(html) {
+  this.html = html;
+  this.init()
+}
+CreateDiv.prototype.init = function() {
+  var div = document.createElement('div');
+  div.innerHTML = this.html;
+  document.body.appendChild(div);
+}
+
+var ProxySingletonCreateDiv = (function() {
+  var instance
+  return function(html) {
+    if(!instance) {
+      instance = new CreateDiv(html)
+    }
+    return instance;
+  }
+})()
+
+var a = new ProxySingletonCreateDiv('aaaa')
+var b = new ProxySingletonCreateDiv('ccccc')
+
+alert(a === b)
+```
+
+## 策略模式
+
+::: tip 定义
+定义一系列算法，把它们一个个封装起来，并且是他们可以相互替换。
+:::
+
+### 策略模式的优点
+
+1. 策略模式利用组合、委托和等技术和思想，可以有效避免多重条件选择语句。
+2. 策略模式提供了开发-封闭原则的完美支持，将算法封装在独立的函数中，易于理解，易于扩展，易于切换。
+3. 策略模式中的算法也可以复用在系统的其他地方，可以避免重复使用的情况。
+4. 策略模式中利用组合和委托让上下文 Context拥有执行算法的能力，这也是继承的一种更轻便的替代方案。
+
+### 策略模式的缺点
+
+1. 策略模式会在程序中增加许多策略类或者策略对象
+2. 要使用策略模式，必须了解所有的strategy策略内容，必须了解各个strategy之间的不同点，这样才能选择一个合适的strategy。
+
+### 策略模式的案例：计算奖金
+
+案例描述：某公司的年终奖是根据员工的工资基数和年底绩效来发放的。例如，绩效为S的人年终奖有4倍工资，绩效为A的人年终奖有3倍工资，绩效为B的人年终奖有2倍工资，财务部要求我们提供一段代码，来方便他们计算员工的年终奖。
+
+**计算奖金：最初版本**
+
+```js
+var calculateBonus = function( performanceLevel, salary) {
+  if( performanceLevel == 'S') {
+    return salary * 4
+  }
+  if( performanceLevel == 'A') {
+    return salary * 3
+  }
+  if( performanceLevel == 'B') {
+    return salary * 2
+  }
+  if( performanceLevel == 'C') {
+    return salary * 1
+  }
+}
+
+
+calculateBonus('S', 20000 );
+calculateBonus('B', 2000);
+```
+
+:::info
+可以发现，这段代码十分简单，但是存在着显而易见的缺点。
+
+❏ calculateBonus函数比较庞大，包含了很多if-else语句，这些语句需要覆盖所有的逻辑分支。
+
+❏ calculateBonus函数缺乏弹性，如果增加了一种新的绩效等级C，或者想把绩效S的奖金系数改为5，那我们必须深入calculateBonus函数的内部实现，这是违反开放-封闭原则的。
+
+❏ 算法的复用性差，如果在程序的其他地方需要重用这些计算奖金的算法呢？我们的选择只有复制和粘贴。
+:::
+
+**计算奖金：策略模式**
+
+```js
+var performanceS = function( salary ) {
+  return salary * 4
+}
+var performanceA = function( salary ) {
+  return salary * 3
+}
+var performanceB = function( salary ) {
+  return salary * 2
+}
+
+var calculateBonus = function( performanceLevel, salary) {
+  if( performanceLevel == 'S') {
+    return performanceS(salary)
+  }
+  if( performanceLevel == 'A') {
+    return performanceA(salary)
+  }
+  if( performanceLevel == 'B') {
+    return performanceB(salary)
+  }
+}
+
+calculateBonus("B", 2000)
+```
+
+**计算奖金：模仿面向对象模式**
+
+```js
+var performanceS = function() {}
+performanceS.prototype.calculate = function(salary) {
+  return salary * 4
+}
+var performanceA = function() {}
+performanceA.prototype.calculate = function(salary) {
+  return salary * 3
+}
+var performanceB = function() {}
+performanceB.prototype.calculate = function(salary) {
+  return salary * 2
+}
+
+var Bonus = function() {
+  this.salary = null; // 原始薪资
+  this.strategy = null; // 绩效等级对应的策略
+}
+
+Bonus.prototype.setSalary = function(salary) {
+  this.salary = salary
+}
+
+Bonus.prototype.setStrategy = function(strategy) {
+  this.strategy = strategy
+}
+Bonus.prototype.getBonus = function() {
+  return this.strategy.calculate(this.salary)
+}
+
+var bonus = new Bonus()
+
+bonus.setSalary(4000);
+bonus.setStrategy(new PerformanceS());
+console.log(bonus.getBonus());  // 输出16000
+
+bonus.setSalary(3000);
+bonus.setStrategy(new PerformanceA());
+console.log(bonus.getBonus());  // 输出9000
+
+bonus.setSalary(2000);
+bonus.setStrategy(new PerformanceB());
+console.log(bonus.getBonus());  // 输出4000
+```
+
+**计算奖金：JavaScript 版本**
+
+```js
+var strategies = {
+  "S": function( salary ) {
+    return salary * 4
+  },
+  "A": function( salary ) {
+    return salary * 3
+  },
+  "B": function( salary ) {
+    return salary * 2
+  },
+}
+
+var calculateBonus = function(level, salary) {
+  return strategies[level](salary)
+}
+
+console.log(calculateBonus('S',4000));  // 输出16000
+console.log(calculateBonus('A',3000));  // 输出9000
+console.log(calculateBonus('B',2000));  // 输出4000
+```
+
+### 策略模式案例之 表单验证
+
+:::tip
+表单标签
+
+1. 用户名(验证是否为空)
+2. 密码(验证长度不能小于6位)
+3. 手机号(验证是否是手机号格式)
+   :::
+
+```js
+// 策略模式案例：表单验证
+var strategies = {
+  isEmpty: function(value,errMsg) {
+    if(value==='') {
+      return errMsg
+    }
+  },
+  minLength: function(value,length,errMsg) {
+    if(value.length<length) {
+      return errMsg
+    }
+  },
+  isMobile: function(value,errMsg) {
+    if(!(/^1[34578]\d{9}$/.test(value))) {
+      return errMsg
+    }
+  }
+}
+var Validator = function() {
+  this.cache = [];
+}
+Validator.prototype.add = function(dom,rule,msg) {
+  var ary = rule.split(':');
+  this.cache.push(function(){
+    var strategy = ary.shift();
+    ary.unshift(dom.value);
+    ary.push(msg);
+    return strategies[strategy].apply(dom,ary);
+  });
+}
+Validator.prototype.run = function() {
+  for (let index = 0; index < this.cache.length; index++) {
+    var msg = this.cache[index]();
+    if(msg) {
+      return msg;
+    }
+  }
+}
+
+var validateFunc = function() {
+  var validator = new Validator();
+  validator.add(registerForm.username,'isEmpty','用户名不能为空');
+  validator.add(registerForm.password,'minLength:6','密码长度不能小于6位');
+  validator.add(registerForm.phone,'isMobile','手机号格式不正确');
+  var errMsg = validator.run();
+  return errMsg;
+}
+
+var submitBtn = document.getElementById('submitBtn');
+var registerForm = document.getElementById('registerForm');
+submitBtn.onclick = function() {
+  var errMsg = validateFunc();
+  if(errMsg) {
+    console.log(errMsg);
+    return false;
+  } else {
+    console.log('表单验证成功')
+  }
+}
+```
+
+---
+
+---
+url: /guide/js2file.md
+---
+# js 图片URL转file 文件对象
+
+:::info 前景
+在做项目时遇到一个需求，把图片URL上传到服务器。但是上传文件的接口需要的是file文件对象格式。
+但遇到了一个比较棘手问题，图片跨域。下面是具体的解决方案。
+如果单独设置 `crossOrigin` 属性依然显示跨域，但通过设置 img.src 里的 随机数，可以解决图片跨域问题。
+:::
+
+1. 准备图片的URL
+2. 创建 `const img = new Image()` 构造函数
+3. 设置  `img` 的 `src` 和 `crossOrigin` 属性
+4. 在 `img` 的 `onload` 函数里创建 `canvas`
+5. 设置 `canvas` 的宽高并转换成图片 `dataurl`
+6. 把 `dataurl` 再转换成 `File` 对象
+
+```js
+
+function getBase64(imgUrl, cb) {
+  let img = new Image();
+  img.src = `${url}?v=${Math.randon()}`; // 处理缓存,fix缓存bug,有缓存，浏览器会报错;
+  img.setAttribute('crossOrigin', 'Anonymous'); // 解决控制台跨域报错的问题
+  img.onload = function () {
+    const canvas = document.createElement('canvas');
+    canvas.with = img.width;
+    canvas.height = img.height;
+    canvas.getContext("2d").drawImage(img, 0,0,width ,height)
+    const dataURL = canvas.toDataURL("image/jpeg"); //转换图片为dataURL
+    cb && cb(dataURL)
+  }
+}
+
+function dataURLtoFile(url, filename) {
+  //将base64转换为文件，dataurl为base64字符串，filename为文件名（必须带后缀名，如.jpg,.png）
+  var arr = dataurl.split(","),
+    mime = arr[0].match(/:(.*?);/)[1],
+    bstr = atob(arr[1]),
+    n = bstr.length,
+    u8arr = new Uint8Array(n);
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  return new File([u8arr], filename, { type: mime });
+}
+
+function setInitImg(url,callback){
+  let img = url;//这里是淘宝上随便找的一张图片
+  let _ = this
+  let imgRes
+  getBase64(img, (dataURL) => {
+    imgRes = dataURLtoFile(dataURL,img);
+    console.log(imgRes)
+    callback(imgRes)
+  });
+}
+
+```
+
+## 调用
+
+```js
+setInitImg('https://cube.elemecdn.com/6/94/4d3ea53c084bad6931a56d5158a48jpeg.jpeg',(file)=>{
+	   this.fileList.push(file)
+ })
+```
+
+---
+
+---
+url: /lodash.md
+---
+
+# Lodash
+
+## 1. 介绍
+
+Lodash 是一个一致性、模块化、高性能的 JavaScript 实用工具库。
+Lodash 方法的命名都非常语义化，其参数也非常灵活。内部使用了大量的现代 JavaScript 特性，以确保方法有更好的性能。
+
+## 2. 安装
+
+```bash
+npm install lodash --save
+yarn add lodash --save
+pnpm add lodash --save
+bun add lodash --save
+```
+
+## 3. 常用方法
+
+我这里按照文档分为以下大类，分别是：`Array`、`Collection` 、`Date` 、`Function` 、`Lang` 、`Math` 、`Number` 、`Object` 、`Seq` 、`String` 、`Util` 。常用的方法会在后面的文章中介绍。比如`Array`、`Object`、`String`、`Number`、`Util`等。
+
+## 4. 参考
+
+* [Lodash](https://lodash.com/docs/4.17.15#now)
+
+---
+
+---
+url: /javascript/mockjs拦截原理.md
+---
+# mockjs拦截原理
+
+## 前言
+
+最近在搭建vite 项目时，用到了`vite-plugin-mock`，想到和`mockjs`有什么区别，于是，翻看了源码。发现它也是基于`mockjs`进行了封装实现的。继续深挖看看`mockjs`的原理。
+
+## 原理
+
+`Mockjs` 是重新手写了 `XMLHttpRequest`的方法，用函数的方式返回数据，不是真正意义上的请求。
+
+我们可以看下面代码：
+[源码src/mock.js](src/mock.js)
+
+```js
+Mock.mock = function(rurl, rtype, template) {
+    ...
+    // 拦截 XHR
+    if (XHR) window.XMLHttpRequest = XHR
+    Mock._mocked[rurl + (rtype || '')] = {
+        rurl: rurl,
+        rtype: rtype,
+        template: template
+    }
+    return Mock
+}
+
+module.exports = Mock
+```
+
+通过上面的代码可以看出。`XMLHttpRequest` 被一个 `XHR`赋值。我们再看看它是怎么实现的。
+
+查看源码`src/mock/xhr/xhr.js`发现,XHR 是一个函数MockXMLHttpRequest ，里面定义了一个`custom`对象。
+
+```js
+function MockXMLHttpRequest() {
+    // 初始化 custom 对象，用于存储自定义属性
+    this.custom = {
+        events: {},
+        requestHeaders: {},
+        responseHeaders: {}
+    }
+}
+```
+
+`MockXMLHttpRequest` 通过在原型上进行继承实现拦截请求的方法，主要属性和发放如下：
+
+## 请求相关设置
+
+```js
+// 初始化 Request 相关的属性和方法
+Util.extend(MockXMLHttpRequest.prototype, {
+    // https://xhr.spec.whatwg.org/#the-open()-method
+    // Sets the request method, request URL, and synchronous flag.
+    open: function(method, url, async, username, password) {
+        var that = this
+
+        Util.extend(this.custom, {
+            method: method,
+            url: url,
+            async: typeof async === 'boolean' ? async : true,
+            username: username,
+            password: password,
+            options: {
+                url: url,
+                type: method
+            }
+        })
+
+        this.custom.timeout = function(timeout) {
+            if (typeof timeout === 'number') return timeout
+            if (typeof timeout === 'string' && !~timeout.indexOf('-')) return parseInt(timeout, 10)
+            if (typeof timeout === 'string' && ~timeout.indexOf('-')) {
+                var tmp = timeout.split('-')
+                var min = parseInt(tmp[0], 10)
+                var max = parseInt(tmp[1], 10)
+                return Math.round(Math.random() * (max - min)) + min
+            }
+        }(MockXMLHttpRequest._settings.timeout)
+
+        // 查找与请求参数匹配的数据模板
+        var item = find(this.custom.options)
+
+        function handle(event) {
+            // 同步属性 NativeXMLHttpRequest => MockXMLHttpRequest
+            for (var i = 0; i < XHR_RESPONSE_PROPERTIES.length; i++) {
+                try {
+                    that[XHR_RESPONSE_PROPERTIES[i]] = xhr[XHR_RESPONSE_PROPERTIES[i]]
+                } catch (e) {}
+            }
+            // 触发 MockXMLHttpRequest 上的同名事件
+            that.dispatchEvent(new Event(event.type /*, false, false, that*/ ))
+        }
+
+        // 如果未找到匹配的数据模板，则采用原生 XHR 发送请求。
+        if (!item) {
+            // 创建原生 XHR 对象，调用原生 open()，监听所有原生事件
+            var xhr = createNativeXMLHttpRequest()
+            this.custom.xhr = xhr
+
+            // 初始化所有事件，用于监听原生 XHR 对象的事件
+            for (var i = 0; i < XHR_EVENTS.length; i++) {
+                xhr.addEventListener(XHR_EVENTS[i], handle)
+            }
+
+            // xhr.open()
+            if (username) xhr.open(method, url, async, username, password)
+            else xhr.open(method, url, async)
+
+            // 同步属性 MockXMLHttpRequest => NativeXMLHttpRequest
+            for (var j = 0; j < XHR_REQUEST_PROPERTIES.length; j++) {
+                try {
+                    xhr[XHR_REQUEST_PROPERTIES[j]] = that[XHR_REQUEST_PROPERTIES[j]]
+                } catch (e) {}
+            }
+
+            return
+        }
+
+        // 找到了匹配的数据模板，开始拦截 XHR 请求
+        this.match = true
+        this.custom.template = item
+        this.readyState = MockXMLHttpRequest.OPENED
+        this.dispatchEvent(new Event('readystatechange' /*, false, false, this*/ ))
+    },
+    setRequestHeader: function(name, value) {},
+    timeout: 0,
+    withCredentials: false,
+    upload: {},
+    send: function send(data) {
+        var that = this
+        this.custom.options.body = data
+
+        // 原生 XHR
+        if (!this.match) {
+            this.custom.xhr.send(data)
+            return
+        }
+
+        // 拦截 XHR
+
+        // X-Requested-With header
+        this.setRequestHeader('X-Requested-With', 'MockXMLHttpRequest')
+
+        // loadstart The fetch initiates.
+        this.dispatchEvent(new Event('loadstart' /*, false, false, this*/ ))
+
+        if (this.custom.async) setTimeout(done, this.custom.timeout) // 异步
+        else done() // 同步
+
+        function done() {
+            that.readyState = MockXMLHttpRequest.HEADERS_RECEIVED
+            that.dispatchEvent(new Event('readystatechange' /*, false, false, that*/ ))
+            that.readyState = MockXMLHttpRequest.LOADING
+            that.dispatchEvent(new Event('readystatechange' /*, false, false, that*/ ))
+
+            that.status = 200
+            that.statusText = HTTP_STATUS_CODES[200]
+
+            // fix #92 #93 by @qddegtya
+            that.response = that.responseText = JSON.stringify(
+                convert(that.custom.template, that.custom.options),
+                null, 4
+            )
+
+            that.readyState = MockXMLHttpRequest.DONE
+            that.dispatchEvent(new Event('readystatechange' /*, false, false, that*/ ))
+            that.dispatchEvent(new Event('load' /*, false, false, that*/ ));
+            that.dispatchEvent(new Event('loadend' /*, false, false, that*/ ));
+        }
+    },
+    abort: function abort() {}
+})
+```
+
+## 响应体的设置
+
+```js
+// 初始化 Response 相关的属性和方法
+Util.extend(MockXMLHttpRequest.prototype, {
+    responseURL: '',
+    status: MockXMLHttpRequest.UNSENT,
+    statusText: '',
+    // https://xhr.spec.whatwg.org/#the-getresponseheader()-method
+    getResponseHeader: function(name) {
+        // 原生 XHR
+        if (!this.match) {
+            return this.custom.xhr.getResponseHeader(name)
+        }
+
+        // 拦截 XHR
+        return this.custom.responseHeaders[name.toLowerCase()]
+    },
+    // https://xhr.spec.whatwg.org/#the-getallresponseheaders()-method
+    // http://www.utf8-chartable.de/
+    getAllResponseHeaders: function() {
+        // 原生 XHR
+        if (!this.match) {
+            return this.custom.xhr.getAllResponseHeaders()
+        }
+
+        // 拦截 XHR
+        var responseHeaders = this.custom.responseHeaders
+        var headers = ''
+        for (var h in responseHeaders) {
+            if (!responseHeaders.hasOwnProperty(h)) continue
+            headers += h + ': ' + responseHeaders[h] + '\r\n'
+        }
+        return headers
+    },
+    overrideMimeType: function( /*mime*/ ) {},
+    responseType: '', // '', 'text', 'arraybuffer', 'blob', 'document', 'json'
+    response: null,
+    responseText: '',
+    responseXML: null
+})
+```
+
+---
+
+---
+url: /javascript/promise.md
+---
+# Promise 相关知识
+
+## 使用reduce进行Promise排队执行，按照顺序调接口
+
+```js
+const promises = [.....]
+promises.reduce(
+(prev, next) => prev.then(() => next.action()), 
+Promise.resolve()
+);
+```
+
+---
+
+---
+url: /guide/reduce.md
+---
+# reduce 用法
+
+**背景**
+在项目当中遇到很多关于后台返回数据结构和需要的数据结构不一致的情况。传统的方法已经不能快速地解决当前遇到的问题。这时，我们急需去寻求更快，更好的处理办法。`reduce`就出现了在我们的眼前。
+
+# 用法
+
+`reduce`的用法很多很多。下面是项目当中常用的方法。
+
+## 累加累积
+
+```javascript
+function Accumulation(...vals) {
+    return vals.reduce((t, v) => t + v, 0);
+}
+
+function Multiplication(...vals) {
+    return vals.reduce((t, v) => t * v, 1);
+}
+```
+
+```javascript
+Accumulation(1, 2, 3, 4, 5); // 15
+Multiplication(1, 2, 3, 4, 5); // 120
+```
+
+## 权重求和
+
+```javascript
+const scores = [
+    { score: 90, subject: "chinese", weight: 0.5 },
+    { score: 95, subject: "math", weight: 0.3 },
+    { score: 85, subject: "english", weight: 0.2 }
+];
+const result = scores.reduce((t, v) => t + v.score * v.weight, 0); // 90.5
+```
+
+## 代替reverse
+
+```javascript
+function Reverse(arr = []) {
+    return arr.reduceRight((t, v) => (t.push(v), t), []);
+}
+```
+
+```javascript
+Reverse([1, 2, 3, 4, 5]); // [5, 4, 3, 2, 1]
+```
+
+## 代替map和filter
+
+```javascript
+const arr = [0, 1, 2, 3];
+
+// 代替map：[0, 2, 4, 6]
+const a = arr.map(v => v * 2);
+const b = arr.reduce((t, v) => [...t, v * 2], []);
+
+// 代替filter：[2, 3]
+const c = arr.filter(v => v > 1);
+const d = arr.reduce((t, v) => v > 1 ? [...t, v] : t, []);
+
+// 代替map和filter：[4, 6]
+const e = arr.map(v => v * 2).filter(v => v > 2);
+const f = arr.reduce((t, v) => v * 2 > 2 ? [...t, v * 2] : t, []);
+```
+
+## 代替some和every
+
+```javascript
+const scores = [
+    { score: 45, subject: "chinese" },
+    { score: 90, subject: "math" },
+    { score: 60, subject: "english" }
+];
+
+// 代替some：至少一门合格
+const isAtLeastOneQualified = scores.reduce((t, v) => t || v.score >= 60, false); // true
+
+// 代替every：全部合格
+const isAllQualified = scores.reduce((t, v) => t && v.score >= 60, true); // false
+
+```
+
+## 数组分割
+
+```javascript
+function Chunk(arr = [], size = 1) {
+    return arr.length ? arr.reduce((t, v) => (t[t.length - 1].length === size ? t.push([v]) : t[t.length - 1].push(v), t), [[]]) : [];
+}
+```
+
+```javascript
+const arr = [1, 2, 3, 4, 5];
+Chunk(arr, 2); // [[1, 2], [3, 4], [5]]
+```
+
+## 数组过滤
+
+```javascript
+function Difference(arr = [], oarr = []) {
+    return arr.reduce((t, v) => (!oarr.includes(v) && t.push(v), t), []);
+}
+```
+
+```javascript
+const arr1 = [1, 2, 3, 4, 5];
+const arr2 = [2, 3, 6]
+Difference(arr1, arr2); // [1, 4, 5]
+```
+
+## 数组填充
+
+```javascript
+function Fill(arr = [], val = "", start = 0, end = arr.length) {
+    if (start < 0 || start >= end || end > arr.length) return arr;
+    return [
+        ...arr.slice(0, start),
+        ...arr.slice(start, end).reduce((t, v) => (t.push(val || v), t), []),
+        ...arr.slice(end, arr.length)
+    ];
+}
+```
+
+```javascript
+const arr = [0, 1, 2, 3, 4, 5, 6];
+Fill(arr, "aaa", 2, 5); // [0, 1, "aaa", "aaa", "aaa", 5, 6]
+```
+
+## 数组扁平
+
+```javascript
+function Flat(arr = []) {
+    return arr.reduce((t, v) => t.concat(Array.isArray(v) ? Flat(v) : v), [])
+}
+```
+
+```javascript
+const arr = [0, 1, [2, 3], [4, 5, [6, 7]], [8, [9, 10, [11, 12]]]];
+Flat(arr); // [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+```
+
+## 数组去重
+
+```javascript
+function Uniq(arr = []) {
+    return arr.reduce((t, v) => t.includes(v) ? t : [...t, v], []);
+}
+```
+
+```javascript
+const arr = [2, 1, 0, 3, 2, 1, 2];
+Uniq(arr); // [2, 1, 0, 3]
+```
+
+## 数组最大最小值
+
+```javascript
+function Max(arr = []) {
+    return arr.reduce((t, v) => t > v ? t : v);
+}
+
+function Min(arr = []) {
+    return arr.reduce((t, v) => t < v ? t : v);
+}
+```
+
+```javascript
+const arr = [12, 45, 21, 65, 38, 76, 108, 43];
+Max(arr); // 108
+Min(arr); // 12
+```
+
+## 数组成员独立拆解
+
+```javascript
+function Unzip(arr = []) {
+    return arr.reduce(
+        (t, v) => (v.forEach((w, i) => t[i].push(w)), t),
+        Array.from({ length: Math.max(...arr.map(v => v.length)) }).map(v => [])
+    );
+}
+```
+
+```javascript
+const arr = [["a", 1, true], ["b", 2, false]];
+Unzip(arr); // [["a", "b"], [1, 2], [true, false]]
+```
+
+---
+
+---
+url: /rollup.md
+---
+# Rollup
+
+## Overview(什么是Rollup)
+
+`Rollup` 是 `JavaScript` 的模块捆绑器，它将小段代码编译成更大更复杂的代码，比如库或应用程序。
+
+## Install(安装)
+
+`npm install --global rollup`
+
+## Quick Start (快速开始)
+
+`Rollup`既可以通过带有可选配置文件的命令行接口使用，也可以通过其JavaScript API使用。
+
+这些命令假设应用程序的入口点名为main.js，并且您希望将所有导入编译到一个名为bundle.js的文件中。
+
+编译为浏览器：`For browsers:`
+
+```
+# compile to a <script> containing a self-executing function ('iife')
+rollup main.js --file bundle.js --format iife
+```
+
+编译为node环境：`For Node.js:`
+
+```
+# compile to a CommonJS module ('cjs')
+rollup main.js --file bundle.js --format cjs
+```
+
+编译为浏览器和node环境：`For both browsers and Node.js:`
+
+```
+# UMD format requires a bundle name
+rollup main.js --file bundle.js --format umd --name "myBundle"
+```
+
+## Tree-shaking
+
+除了支持ES模块的使用外，Rollup还静态地分析您正在导入的代码，并将排除实际上没有使用的任何代码。这允许您在现有工具和模块的基础上进行构建，而无需增加额外的依赖项或增加项目的规模。
+
+---
+
+---
+url: /rust/questinos.md
+---
+# Rust 开发过程的问题集
+
+## Q1: cargo build 时 出现 network error
+
+### 问题描述
+
+warning: spurious network error (2 tries remaining): failed to connect to github.com: Operation timed out; class=Os (2)
+
+### 解决方法
+
+在文件 /etc/resolv.conf 中增加了阿里的dns域名服务器， 问题没有解决;
+
+```sh
+nameserver 223.5.5.5
+nameserver 223.6.6.6
+```
+
+### 相关文章
+
+[在使用cargo进行复杂软件安装时， 依赖比较多的库， 需要快速下载](https://www.cnblogs.com/QuLory/p/13992013.html)
+
+---
+
+---
+url: /index.md
+---
+
+
+---
+
+---
+url: /juejin.md
+---
+
+
+---
+
+---
+url: /vueAnalysis.md
+---
+# Vue2
+
+## sdfsd
+
+## vue2222
+
+---
+
+---
+url: /vueNextAnalysis.md
+---
+# vue3 源码分析
+
+## Proxy和defineProperty的区别
+
+### 前言
+
+为什么会有这个标题呢？起因是在学习Vue3源码里看到的全面采用了ES6里`Proxy`。遂想到和Vue2里的`definePropery`有什么区别。
+
+### 什么是`Proxy`
+
+`Proxy`是ES6推出的一个类，给对象架设一层拦截器，但凡要`访问`和`修改`这个对象上的值或者属性，都必须先经过这层拦截器，`Proxy`也叫`代理器`，它代理了对对象的操作。那和`Object.defineProperty`的区别
+
+### 什么是`Object.defineProperty`
+
+`Object.defineProperty`是对对象上的属性进行新增或者修改，有2种写法，`数据描述符`和`访问器描述符`
+
+```javascript
+const obj = {
+	name: 'Chrome';
+}
+
+// 数据描述符
+Object.defineProperty(obj, 'age',{
+  configurable: true, // 这个定义是否可以被delete
+  enumerable: true, // 这个值是否可以被for in 枚举,或者Object.keys获取到
+  writable: true, // 定义是否可以被修改
+  value: '100'
+})
+// 访问器描述符
+Object.defineProperty(obj, 'child', {
+	configurable: true,
+  enumerable: true,
+  set(value) {
+  	console.log(value)
+  },
+  get() {
+  	console.log(this.value)
+  }
+})
+```
+
+### `Object.defineProperty`和 `Proxy`的区别
+
+* `Object.defineProperty`对对象自身做修改，而`Proxy`只是在Object基础上一层拦截，不修改原对象
+* 监听不了数组的变化
+* 监听手段比较单一，只能监听`set`和`get`，`Proxy`有十几种监听
+* 必须得把所有的属性全部添加`defineProperty`。`Proxy`对整个对象都会进行拦截
+
+### 1、为什么`Proxy`不用遍历每个属性
+
+```javascript
+var needProxyObj = {name: 'chrome', age:'800'}
+var proxyObj = new Proxy(needProxyObj, {
+    set(target, key, value, receiver) {
+        consnole.log('proxy修改了', key, value)
+    }
+})
+
+proxyObj.name = 'safari'; // proxy修改了 name safari
+
+```
+
+Proxy是代理在`对象`级别的，defineProperty是代理到`静态的值`级别，所以Proxy的强大就在这里
+
+### 2、为什么`Proxy`不修改原对象，为什么`Proxy`是在对象上面加一层代理?
+
+```javascript
+var needProxyObj = {name: 'chrome', age:'800'}
+var proxyObj = new Proxy(needProxyObj, {
+    set(target, key, value, receiver) {
+        consnole.log('proxy修改了', key, value)
+    }
+})
+proxyObj.name = 'safari'; // proxy修改了 name safari
+needProxyObj.child = 'sun'; // sun , 没有被拦截
+console.log(proxyObj.child); // sun
+needProxyObj === proxyObj; // false
+```
+
+看到没, 当我修改被代理之前的对象的时候，拦截器没有起作用，并且被代理的新对象proxyObj的child值也跟着变化了, 但是needProxyObj === proxyObj; // false, 这又是蜜汁操作之一了。其实也好理解，代理对象和被代理的对象，他们在表面上是不一样的，其实在底层是同一个对象。
+
+### 3、为什么我又说Proxy不修改原对象也是不准确的。
+
+这就涉及到Proxy和defineProperty的一个共同特性，不支持对象嵌套。需要递归去实现。
+
+```javascript
+var person = {
+    name: '阿巴',
+    age: '100',
+    child: {
+        name: '阿巴的儿子',
+        age: '88'
+    }
+}
+var proxyEvent = {
+       
+}
+var deepProxy = function(obj) {
+    if (typeof obj === 'object') {
+        Object.entries(obj).forEach(([key, value]) => {
+            obj[key] = deepProxy(value);
+        })
+        return new Proxy(obj, proxyEvent)
+    }
+    return obj;
+}
+deepProxy(person);
+```
+
+![image.png](./img//proxy.png)
+这就是我说为什么不准确的原因了, 所以万不得已，真心不推荐用递归的方式去设置Proxy, 当然，有办法递归设置Proxy，咱们就有办法给它还原
+
+```javascript
+
+function proxyToObject(proxyObj) {
+    const next = function (obj, mergeObj) {
+        if (typeof obj === 'object') {
+            Object.entries(obj).forEach(([key, value]) => {
+                if (!value) {
+                    mergeObj[key] = value;
+                } else if (value instanceof Array) {
+                    mergeObj[key] = next(value, []);
+                } else if (value instanceof Object) {
+                    mergeObj[key] = next(value, {});
+                } else {
+                    mergeObj[key] = value;
+                }
+            })
+        }
+        if (obj && obj instanceof Array) {
+            for (let value of obj) {
+                mergeObj.push(next(value, {}));
+            }
+        }
+        return mergeObj;
+    }
+    return next(proxyObj, {});
+}
+proxyToObject(person); // 然后就恢复了
+```
+
+### 4、为什么说Proxy可以监听数组的访问
+
+我们都知道在Vue中，由于defineProperty的局限性，数组的push被认为是变异的特性，为什么vue的push可以被监听到呢，是因为vue把数组对象的push给重写了，进行拦截，这导致增加了不少额外的操作
+
+```javascript
+// 来看看Proxy怎么实现
+var arr = [1,2,3,4];
+let arrProxy = new Proxy(arr, {
+    get(target, propKey) {
+        if (Array.isArray(target) && typeof Array.prototype[propKey] === 'function') {
+            Promise.resolve().then(e => {
+                console.log('操作了数组', propKey);
+            })
+        }
+        return target[propKey]
+    }
+})
+arrProxy.push(5);
+console.log('push结束了');
+// push结束了
+// 操作了数组 push
+
+```
+
+为什么要使用Promise.resolve(), 是因为push是一个同步操作，在访问 push的时候还没有执行这个函数，所以想在push之后做一些事情，就可以用这个微任务机制来把操作滞后
+
+---
+
+---
+url: /workLog.md
+---
+# 如何发布之后自动更新
+
+## 描述
+
+在发布之后，我们会经常遇到一些更新问题，比如：
+
+* 代码逻辑还是之前的
+* 点击按钮跳转后路由报错
+* 更新时无法通知到用户
+
+## 环境
+
+* 企业微信h5
+* vite + vue3 + ts
+
+## 配置
+
+在 vite.config.ts 打包配置中添加相关插件代码
+
+```ts
+// 发布之后自动更新
+import { writeFileSync } from 'fs';
+import { resolve } from 'path';
+{
+
+  plugins: [
+  {
+        name: 'vite-build-version',
+        apply: 'build',
+        buildStart() {
+          console.log('buildEnd')
+          const version = process.env.npm_package_version;
+          const timestamp = new Date().toISOString();
+          // 生成 version.json 文件
+          const versionInfo = {
+            version,
+            buildTime: timestamp,
+          };
+
+          const outputPath = resolve(__dirname, './public', 'version.json');
+          writeFileSync(outputPath, JSON.stringify(versionInfo, null, 2));
+        }
+      },
+  ]
+}
+
+```
+
+在 public 目录下创建 version.json 文件
+
+```json
+{
+  "version": "1.0.0",
+  "buildTime": "2023-04-20T10:30:00.000Z"
+}
+```
+
+最后在入口文件中添加以下代码
+
+```ts
+let url = isDev ? "/version.json" : "/dmsapp/repair/version.json";
+fetch(url)
+  .then((res) => res.json())
+  .then((res) => {
+    if (!localStorage.getItem("version")) {
+      localStorage.setItem("version", res.version);
+    } else {
+      if (localStorage.getItem("version") != res.version) {
+        localStorage.setItem("version", res.version);
+        location.reload();
+      }
+    }
+  });
+
+```
+
+---
+
+---
+url: /Rxj/rxjs&vue-route.md
+---
+```ts rxRouter.ts
+import { BehaviorSubject, Observable, filter, map } from 'rxjs';
+import { Router, RouteLocationNormalized } from 'vue-router';
+
+export class RxRouter {
+  private router: Router;
+  private currentRoute$ = new BehaviorSubject<RouteLocationNormalized | null>(null);
+
+  constructor(router: Router) {
+    this.router = router;
+    
+    // 监听路由变化并更新 BehaviorSubject
+    this.router.afterEach((to) => {
+      this.currentRoute$.next(to);
+    });
+  }
+
+  // 获取当前路由的 Observable
+  public getRoute(): Observable<RouteLocationNormalized> {
+    return this.currentRoute$.pipe(
+      filter((route): route is RouteLocationNormalized => route !== null)
+    );
+  }
+
+  // 获取特定路由参数的 Observable
+  public getParam(paramName: string): Observable<string | undefined> {
+    return this.getRoute().pipe(
+      map(route => route.params[paramName] as string | undefined)
+    );
+  }
+
+  // 获取特定查询参数的 Observable
+  public getQuery(queryName: string): Observable<string | undefined> {
+    return this.getRoute().pipe(
+      map(route => route.query[queryName] as string | undefined)
+    );
+  }
+
+  // 导航方法
+  public navigate(path: string, query?: Record<string, string>): Promise<void> {
+    return this.router.push({ path, query });
+  }
+
+  // 替换当前路由
+  public replace(path: string, query?: Record<string, string>): Promise<void> {
+    return this.router.replace({ path, query });
+  }
+}
+
+```
+
+## 接下来，创建一个路由配置管理器：
+
+```ts routeConfig.ts
+import { RouteRecordRaw } from 'vue-router';
+import { BehaviorSubject, Observable } from 'rxjs';
+
+// 扩展的路由配置接口
+export interface EnhancedRouteConfig extends RouteRecordRaw {
+  permissions?: string[];
+  meta?: {
+    title?: string;
+    icon?: string;
+    hidden?: boolean;
+    [key: string]: any;
+  };
+}
+
+export class RouteConfigManager {
+  private routeConfigs$ = new BehaviorSubject<EnhancedRouteConfig[]>([]);
+  
+  constructor(initialRoutes: EnhancedRouteConfig[] = []) {
+    this.routeConfigs$.next(initialRoutes);
+  }
+
+  // 获取路由配置的 Observable
+  public getRouteConfigs(): Observable<EnhancedRouteConfig[]> {
+    return this.routeConfigs$.asObservable();
+  }
+
+  // 添加路由配置
+  public addRouteConfig(config: EnhancedRouteConfig): void {
+    const currentConfigs = this.routeConfigs$.getValue();
+    this.routeConfigs$.next([...currentConfigs, config]);
+  }
+
+  // 批量添加路由配置
+  public addRouteConfigs(configs: EnhancedRouteConfig[]): void {
+    const currentConfigs = this.routeConfigs$.getValue();
+    this.routeConfigs$.next([...currentConfigs, ...configs]);
+  }
+
+  // 根据路径获取路由配置
+  public getRouteConfigByPath(path: string): EnhancedRouteConfig | undefined {
+    return this.findRouteConfigByPath(this.routeConfigs$.getValue(), path);
+  }
+
+  // 递归查找路由配置
+  private findRouteConfigByPath(
+    configs: EnhancedRouteConfig[], 
+    path: string
+  ): EnhancedRouteConfig | undefined {
+    for (const config of configs) {
+      if (config.path === path) {
+        return config;
+      }
+      
+      if (config.children) {
+        const found = this.findRouteConfigByPath(config.children as EnhancedRouteConfig[], path);
+        if (found) {
+          return found;
+        }
+      }
+    }
+    
+    return undefined;
+  }
+}
+```
+
+## 权限管理集成
+
+创建一个权限管理服务，与路由结合：
+
+```typescript permissionService.ts
+
+import { BehaviorSubject, Observable, combineLatest, map } from 'rxjs';
+import { RouteConfigManager, EnhancedRouteConfig } from './routeConfig';
+
+export class PermissionService {
+  private userPermissions$ = new BehaviorSubject<string[]>([]);
+  private routeConfigManager: RouteConfigManager;
+  
+  constructor(routeConfigManager: RouteConfigManager) {
+    this.routeConfigManager = routeConfigManager;
+  }
+
+  // 设置用户权限
+  public setUserPermissions(permissions: string[]): void {
+    this.userPermissions$.next(permissions);
+  }
+
+  // 获取用户权限
+  public getUserPermissions(): Observable<string[]> {
+    return this.userPermissions$.asObservable();
+  }
+
+  // 检查用户是否有特定权限
+  public hasPermission(permission: string): Observable<boolean> {
+    return this.userPermissions$.pipe(
+      map(permissions => permissions.includes(permission))
+    );
+  }
+
+  // 获取用户有权限访问的路由
+  public getAccessibleRoutes(): Observable<EnhancedRouteConfig[]> {
+    return combineLatest([
+      this.routeConfigManager.getRouteConfigs(),
+      this.userPermissions$
+    ]).pipe(
+      map(([routes, permissions]) => 
+        this.filterAccessibleRoutes(routes, permissions)
+      )
+    );
+  }
+
+  // 递归过滤有权限的路由
+  private filterAccessibleRoutes(
+    routes: EnhancedRouteConfig[], 
+    permissions: string[]
+  ): EnhancedRouteConfig[] {
+    return routes.filter(route => {
+      // 如果路由没有权限要求，或者用户拥有所需权限
+      const hasPermission = !route.permissions || 
+        route.permissions.some(p => permissions.includes(p));
+      
+      if (!hasPermission) {
+        return false;
+      }
+      
+      // 递归处理子路由
+      if (route.children) {
+        const filteredChildren = this.filterAccessibleRoutes(
+          route.children as EnhancedRouteConfig[], 
+          permissions
+        );
+        
+        // 克隆路由对象并替换子路由
+        return {
+          ...route,
+          children: filteredChildren
+        };
+      }
+      
+      return true;
+    });
+  }
+}
+
+
+```
+
+## 路由守卫集成
+
+创建一个基于 RxJS 的路由守卫：
+
+```typescript routeGuard.ts
+import { Router } from 'vue-router';
+import { Observable, firstValueFrom } from 'rxjs';
+import { PermissionService } from './permissionService';
+import { RxRouter } from './rxRouter';
+
+export class RouteGuard {
+  private router: Router;
+  private rxRouter: RxRouter;
+  private permissionService: PermissionService;
+  
+  constructor(
+    router: Router, 
+    rxRouter: RxRouter, 
+    permissionService: PermissionService
+  ) {
+    this.router = router;
+    this.rxRouter = rxRouter;
+    this.permissionService = permissionService;
+    
+    this.setupGuards();
+  }
+  
+  private setupGuards(): void {
+    this.router.beforeEach(async (to, from, next) => {
+      // 检查路由是否需要权限
+      const routeConfig = to.matched.find(record => 
+        record.meta.permissions && record.meta.permissions.length > 0
+      );
+      
+      if (!routeConfig) {
+        // 不需要权限，直接通过
+        next();
+        return;
+      }
+      
+      // 获取路由所需权限
+      const requiredPermissions = routeConfig.meta.permissions as string[];
+      
+      // 检查用户是否有权限
+      const userPermissions = await firstValueFrom(
+        this.permissionService.getUserPermissions()
+      );
+      
+      const hasPermission = requiredPermissions.some(permission => 
+        userPermissions.includes(permission)
+      );
+      
+      if (hasPermission) {
+        next();
+      } else {
+        // 无权限，重定向到无权限页面
+        next({ path: '/unauthorized' });
+      }
+    });
+  }
+}
+```
+
+## 使用示例
+
+最后，创建一个使用示例：
+
+```typescript index.ts
+
+import { createRouter, createWebHistory } from 'vue-router';
+import { RxRouter } from './rxRouter';
+import { RouteConfigManager, EnhancedRouteConfig } from './routeConfig';
+import { PermissionService } from './permissionService';
+import { RouteGuard } from './routeGuard';
+
+// 基础路由配置
+const baseRoutes: EnhancedRouteConfig[] = [
+  {
+    path: '/',
+    component: () => import('../views/Home.vue'),
+    meta: {
+      title: '首页',
+      icon: 'home'
+    }
+  },
+  {
+    path: '/dashboard',
+    component: () => import('../views/Dashboard.vue'),
+    permissions: ['view-dashboard'],
+    meta: {
+      title: '仪表盘',
+      icon: 'dashboard'
+    }
+  },
+  {
+    path: '/admin',
+    component: () => import('../views/Admin.vue'),
+    permissions: ['admin'],
+    meta: {
+      title: '管理',
+      icon: 'admin'
+    },
+    children: [
+      {
+        path: 'users',
+        component: () => import('../views/Users.vue'),
+        permissions: ['manage-users'],
+        meta: {
+          title: '用户管理'
+        }
+      }
+    ]
+  },
+  {
+    path: '/unauthorized',
+    component: () => import('../views/Unauthorized.vue'),
+    meta: {
+      title: '无权限',
+      hidden: true
+    }
+  }
+];
+
+// 创建 Vue Router 实例
+const router = createRouter({
+  history: createWebHistory(),
+  routes: baseRoutes as any
+});
+
+// 创建 RxRouter 实例
+const rxRouter = new RxRouter(router);
+
+// 创建路由配置管理器
+const routeConfigManager = new RouteConfigManager(baseRoutes);
+
+// 创建权限服务
+const permissionService = new PermissionService(routeConfigManager);
+
+// 创建路由守卫
+const routeGuard = new RouteGuard(router, rxRouter, permissionService);
+
+// 设置用户权限（通常在用户登录后设置）
+permissionService.setUserPermissions(['view-dashboard', 'admin']);
+
+export { 
+  router, 
+  rxRouter, 
+  routeConfigManager, 
+  permissionService 
+};
+
+```
+
+## 在组件中使用
+
+```vue Navigation.vue
+
+<template>
+  <div class="navigation">
+    <ul>
+      <li v-for="route in accessibleRoutes" :key="route.path">
+        <router-link :to="route.path">
+          <i v-if="route.meta?.icon" :class="route.meta.icon"></i>
+          {{ route.meta?.title || route.path }}
+        </router-link>
+        
+        <ul v-if="route.children && route.children.length">
+          <li v-for="child in route.children" :key="child.path">
+            <router-link :to="`${route.path}/${child.path}`">
+              {{ child.meta?.title || child.path }}
+            </router-link>
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </div>
+</template>
+
+<script lang="ts">
+import { defineComponent, ref, onMounted } from 'vue';
+import { permissionService } from '../router';
+import { EnhancedRouteConfig } from '../router/routeConfig';
+
+export default defineComponent({
+  name: 'Navigation',
+  setup() {
+    const accessibleRoutes = ref<EnhancedRouteConfig[]>([]);
+    
+    onMounted(() => {
+      // 订阅可访问路由的变化
+      const subscription = permissionService.getAccessibleRoutes().subscribe(routes => {
+        // 过滤掉隐藏的路由
+        accessibleRoutes.value = routes.filter(route => !route.meta?.hidden);
+      });
+      
+      // 组件卸载时取消订阅
+      return () => subscription.unsubscribe();
+    });
+    
+    return {
+      accessibleRoutes
+    };
+  }
+});
+</script>
+
+```
+
+## 动态添加路由示例
+
+```typescript dynamicRouteService.ts
+
+
+import { routeConfigManager, router, permissionService } from '../router';
+import { EnhancedRouteConfig } from '../router/routeConfig';
+
+export class DynamicRouteService {
+  // 从后端加载路由配置
+  public async loadRoutesFromBackend(): Promise<void> {
+    try {
+      // 模拟从后端获取路由配置
+      const response = await fetch('/api/routes');
+      const dynamicRoutes: EnhancedRouteConfig[] = await response.json();
+      
+      // 添加到路由配置管理器
+      routeConfigManager.addRouteConfigs(dynamicRoutes);
+      
+      // 获取用户有权限的路由
+      const accessibleRoutes = await new Promise<EnhancedRouteConfig[]>(resolve => {
+        const subscription = permissionService.getAccessibleRoutes().subscribe(routes => {
+          resolve(routes);
+          subscription.unsubscribe();
+        });
+      });
+      
+      // 动态添加到 Vue Router
+      accessibleRoutes.forEach(route => {
+        if (!router.hasRoute(route.name as string)) {
+          router.addRoute(route as any);
+        }
+      });
+      
+      console.log('动态路由加载完成');
+    } catch (error) {
+      console.error('加载动态路由失败:', error);
+    }
+  }
+}
+```
+
+## 总结
+
+通过以上代码，我们实现了：
+
+1. 使用 RxJS 封装 Vue Router，提供响应式的路由状态
+2. 创建路由配置管理器，支持动态添加和修改路由
+3. 集成权限管理，根据用户权限过滤路由
+4. 实现基于 RxJS 的路由守卫
+5. 支持动态加载路由配置
+   这个架构非常灵活，可以根据实际需求进行扩展，例如添加路由缓存、路由分析等功能。
+
+# 添加路由缓存和路由分析功能
+
+我将为您的 RxJS 和 Vue Router 集成方案添加路由缓存和路由分析功能。这两个功能可以显著提升用户体验和帮助开发者了解用户行为。
+
+## 1. 路由缓存服务
+
+首先，让我们创建一个路由缓存服务，用于保存和恢复路由状态：
+
+```typescript
+import { BehaviorSubject, Observable } from 'rxjs';
+import { RouteLocationNormalized } from 'vue-router';
+import { RxRouter } from './rxRouter';
+
+interface CachedRouteState {
+  path: string;
+  query: Record<string, string>;
+  params: Record<string, string>;
+  scrollPosition?: { x: number; y: number };
+  timestamp: number;
+  data?: any; // 用于存储与路由相关的自定义数据
+}
+
+export class RouteCacheService {
+  private static readonly CACHE_KEY = 'route_cache';
+  private static readonly MAX_CACHE_SIZE = 20; // 最大缓存路由数量
+  
+  private cachedRoutes$ = new BehaviorSubject<Record<string, CachedRouteState>>({});
+  private rxRouter: RxRouter;
+  
+  constructor(rxRouter: RxRouter) {
+    this.rxRouter = rxRouter;
+    this.loadCacheFromStorage();
+    
+    // 监听路由变化，自动缓存
+    this.rxRouter.getRoute().subscribe(route => {
+      this.cacheRoute(route);
+    });
+    
+    // 监听页面滚动，保存滚动位置
+    if (typeof window !== 'undefined') {
+      window.addEventListener('beforeunload', () => {
+        this.saveScrollPosition();
+      });
+    }
+  }
+  
+  // 获取缓存的路由
+  public getCachedRoutes(): Observable<Record<string, CachedRouteState>> {
+    return this.cachedRoutes$.asObservable();
+  }
+  
+  // 缓存当前路由
+  private cacheRoute(route: RouteLocationNormalized): void {
+    const cachedRoutes = this.cachedRoutes$.getValue();
+    const routeKey = this.getRouteKey(route);
+    
+    // 创建缓存对象
+    const cacheState: CachedRouteState = {
+      path: route.path,
+      query: { ...route.query } as Record<string, string>,
+      params: { ...route.params } as Record<string, string>,
+      timestamp: Date.now(),
+      scrollPosition: this.getCurrentScrollPosition()
+    };
+    
+    // 更新缓存
+    const updatedCache = {
+      ...cachedRoutes,
+      [routeKey]: cacheState
+    };
+    
+    // 如果缓存过大，删除最旧的缓存
+    const cacheEntries = Object.entries(updatedCache);
+    if (cacheEntries.length > RouteCacheService.MAX_CACHE_SIZE) {
+      const sortedEntries = cacheEntries.sort((a, b) => 
+        a[1].timestamp - b[1].timestamp
+      );
+      
+      // 删除最旧的条目
+      const oldestKey = sortedEntries[0][0];
+      delete updatedCache[oldestKey];
+    }
+    
+    this.cachedRoutes$.next(updatedCache);
+    this.saveCacheToStorage();
+  }
+  
+  // 保存自定义数据到路由缓存
+  public saveRouteData(routePath: string, data: any): void {
+    const cachedRoutes = this.cachedRoutes$.getValue();
+    const routeKey = Object.keys(cachedRoutes).find(key => 
+      cachedRoutes[key].path === routePath
+    );
+    
+    if (routeKey) {
+      cachedRoutes[routeKey].data = data;
+      this.cachedRoutes$.next({ ...cachedRoutes });
+      this.saveCacheToStorage();
+    }
+  }
+  
+  // 获取路由缓存的自定义数据
+  public getRouteData(routePath: string): any | undefined {
+    const cachedRoutes = this.cachedRoutes$.getValue();
+    const routeKey = Object.keys(cachedRoutes).find(key => 
+      cachedRoutes[key].path === routePath
+    );
+    
+    return routeKey ? cachedRoutes[routeKey].data : undefined;
+  }
+  
+  // 恢复路由状态
+  public restoreRoute(routePath: string): boolean {
+    const cachedRoutes = this.cachedRoutes$.getValue();
+    const routeKey = Object.keys(cachedRoutes).find(key => 
+      cachedRoutes[key].path === routePath
+    );
+    
+    if (!routeKey) {
+      return false;
+    }
+    
+    const cachedRoute = cachedRoutes[routeKey];
+    
+    // 导航到缓存的路由
+    this.rxRouter.navigate(cachedRoute.path, cachedRoute.query);
+    
+    // 恢复滚动位置
+    if (cachedRoute.scrollPosition) {
+      setTimeout(() => {
+        window.scrollTo({
+          top: cachedRoute.scrollPosition!.y,
+          left: cachedRoute.scrollPosition!.x,
+          behavior: 'auto'
+        });
+      }, 100);
+    }
+    
+    return true;
+  }
+  
+  // 清除特定路由的缓存
+  public clearRouteCache(routePath: string): void {
+    const cachedRoutes = this.cachedRoutes$.getValue();
+    const routeKey = Object.keys(cachedRoutes).find(key => 
+      cachedRoutes[key].path === routePath
+    );
+    
+    if (routeKey) {
+      const updatedCache = { ...cachedRoutes };
+      delete updatedCache[routeKey];
+      this.cachedRoutes$.next(updatedCache);
+      this.saveCacheToStorage();
+    }
+  }
+  
+  // 清除所有缓存
+  public clearAllCache(): void {
+    this.cachedRoutes$.next({});
+    localStorage.removeItem(RouteCacheService.CACHE_KEY);
+  }
+  
+  // 获取路由的唯一键
+  private getRouteKey(route: RouteLocationNormalized): string {
+    return `${route.path}${JSON.stringify(route.query)}`;
+  }
+  
+  // 获取当前滚动位置
+  private getCurrentScrollPosition(): { x: number; y: number } {
+    return {
+      x: window.scrollX || window.pageXOffset,
+      y: window.scrollY || window.pageYOffset
+    };
+  }
+  
+  // 保存当前滚动位置
+  private saveScrollPosition(): void {
+    const cachedRoutes = this.cachedRoutes$.getValue();
+    const currentRoute = this.rxRouter.getCurrentRoute();
+    
+    if (!currentRoute) {
+      return;
+    }
+    
+    const routeKey = this.getRouteKey(currentRoute);
+    if (cachedRoutes[routeKey]) {
+      cachedRoutes[routeKey].scrollPosition = this.getCurrentScrollPosition();
+      this.cachedRoutes$.next({ ...cachedRoutes });
+      this.saveCacheToStorage();
+    }
+  }
+  
+  // 将缓存保存到 localStorage
+  private saveCacheToStorage(): void {
+    try {
+      localStorage.setItem(
+        RouteCacheService.CACHE_KEY, 
+        JSON.stringify(this.cachedRoutes$.getValue())
+      );
+    } catch (error) {
+      console.error('保存路由缓存失败:', error);
+    }
+  }
+  
+  // 从 localStorage 加载缓存
+  private loadCacheFromStorage(): void {
+    try {
+      const cachedData = localStorage.getItem(RouteCacheService.CACHE_KEY);
+      if (cachedData) {
+        this.cachedRoutes$.next(JSON.parse(cachedData));
+      }
+    } catch (error) {
+      console.error('加载路由缓存失败:', error);
+      // 如果加载失败，清除可能损坏的缓存
+      localStorage.removeItem(RouteCacheService.CACHE_KEY);
+    }
+  }
+}
+```
+
+## 2. 路由分析服务
+
+接下来，创建一个路由分析服务，用于跟踪和分析用户的路由行为：
+
+```typescript
+
+import { Observable, Subject, filter, map, pairwise, startWith } from 'rxjs';
+import { RouteLocationNormalized } from 'vue-router';
+import { RxRouter } from './rxRouter';
+
+export interface RouteTransition {
+  from: RouteLocationNormalized | null;
+  to: RouteLocationNormalized;
+  timestamp: number;
+  duration?: number; // 停留时间（毫秒）
+}
+
+export interface RouteAnalytics {
+  path: string;
+  visits: number;
+  averageDuration: number; // 平均停留时间（毫秒）
+  lastVisit: number; // 最后访问时间戳
+}
+
+export class RouteAnalyticsService {
+  private static readonly ANALYTICS_KEY = 'route_analytics';
+  private static readonly MAX_TRANSITIONS = 100; // 最大记录的路由转换数量
+  
+  private routeTransitions: RouteTransition[] = [];
+  private routeAnalytics: Record<string, RouteAnalytics> = {};
+  private transitionSubject = new Subject<RouteTransition>();
+  
+  constructor(private rxRouter: RxRouter) {
+    this.loadAnalyticsFromStorage();
+    
+    // 监听路由变化
+    this.rxRouter.getRoute().pipe(
+      startWith(null),
+      pairwise(),
+      filter(([from, to]) => to !== null)
+    ).subscribe(([from, to]) => {
+      if (to) {
+        this.recordTransition(from as RouteLocationNormalized | null, to as RouteLocationNormalized);
+      }
+    });
+  }
+  
+  // 获取路由转换的 Observable
+  public getRouteTransitions(): Observable<RouteTransition> {
+    return this.transitionSubject.asObservable();
+  }
+  
+  // 获取特定路径的分析数据
+  public getRouteAnalytics(path: string): RouteAnalytics | undefined {
+    return this.routeAnalytics[path];
+  }
+  
+  // 获取所有路径的分析数据
+  public getAllRouteAnalytics(): Record<string, RouteAnalytics> {
+    return { ...this.routeAnalytics };
+  }
+  
+  // 获取最常访问的路由
+  public getMostVisitedRoutes(limit: number = 5): RouteAnalytics[] {
+    return Object.values(this.routeAnalytics)
+      .sort((a, b) => b.visits - a.visits)
+      .slice(0, limit);
+  }
+  
+  // 获取停留时间最长的路由
+  public getLongestDurationRoutes(limit: number = 5): RouteAnalytics[] {
+    return Object.values(this.routeAnalytics)
+      .sort((a, b) => b.averageDuration - a.averageDuration)
+      .slice(0, limit);
+  }
+  
+  // 获取最近访问的路由
+  public getRecentlyVisitedRoutes(limit: number = 5): RouteAnalytics[] {
+    return Object.values(this.routeAnalytics)
+      .sort((a, b) => b.lastVisit - a.lastVisit)
+      .slice(0, limit);
+  }
+  
+  // 记录路由转换
+  private recordTransition(from: RouteLocationNormalized | null, to: RouteLocationNormalized): void {
+    const now = Date.now();
+    
+    // 创建转换记录
+    const transition: RouteTransition = {
+      from,
+      to,
+      timestamp: now
+    };
+    
+    // 如果有前一个路由，计算停留时间
+    if (from && this.routeTransitions.length > 0) {
+      const lastTransition = this.routeTransitions[this.routeTransitions.length - 1];
+      const duration = now - lastTransition.timestamp;
+      
+      // 更新前一个转换的停留时间
+      lastTransition.duration = duration;
+      
+      // 更新分析数据
+      this.updateRouteAnalytics(from.path, duration);
+    }
+    
+    // 添加新的转换记录
+    this.routeTransitions.push(transition);
+    
+    // 如果记录过多，删除最旧的
+    if (this.routeTransitions.length > RouteAnalyticsService.MAX_TRANSITIONS) {
+      this.routeTransitions.shift();
+    }
+    
+    // 发布转换事件
+    this.transitionSubject.next(transition);
+    
+    // 保存分析数据
+    this.saveAnalyticsToStorage();
+  }
+  
+  // 更新路由分析数据
+  private updateRouteAnalytics(path: string, duration: number): void {
+    if (!this.routeAnalytics[path]) {
+      this.routeAnalytics[path] = {
+        path,
+        visits: 0,
+        averageDuration: 0,
+        lastVisit: Date.now()
+      };
+    }
+    
+    const analytics = this.routeAnalytics[path];
+    
+    // 更新访问次数和最后访问时间
+    analytics.visits += 1;
+    analytics.lastVisit = Date.now();
+    
+    // 更新平均停留时间
+    analytics.averageDuration = (
+      (analytics.averageDuration * (analytics.visits - 1)) + duration
+    ) / analytics.visits;
+  }
+  
+  // 清除分析数据
+  public clearAnalytics(): void {
+    this.routeTransitions = [];
+    this.routeAnalytics = {};
+    localStorage.removeItem(RouteAnalyticsService.ANALYTICS_KEY);
+  }
+  
+  // 将分析数据保存到 localStorage
+  private saveAnalyticsToStorage(): void {
+    try {
+      localStorage.setItem(
+        RouteAnalyticsService.ANALYTICS_KEY, 
+        JSON.stringify(this.routeAnalytics)
+      );
+    } catch (error) {
+      console.error('保存路由分析数据失败:', error);
+    }
+  }
+  
+  // 从 localStorage 加载分析数据
+  private loadAnalyticsFromStorage(): void {
+    try {
+      const analyticsData = localStorage.getItem(RouteAnalyticsService.ANALYTICS_KEY);
+      if (analyticsData) {
+        this.routeAnalytics = JSON.parse(analyticsData);
+      }
+    } catch (error) {
+      console.error('加载路由分析数据失败:', error);
+      localStorage.removeItem(RouteAnalyticsService.ANALYTICS_KEY);
+    }
+  }
+  
+  // 导出分析数据为 JSON
+  public exportAnalytics(): string {
+    return JSON.stringify({
+      transitions: this.routeTransitions,
+      analytics: this.routeAnalytics,
+      exportTime: new Date().toISOString()
+    }, null, 2);
+  }
+}
+```
+
+## 3. 更新 RxRouter 类
+
+首先，我们需要更新 RxRouter 类，添加获取当前路由的方法：
+
+```typescript
+
+import { BehaviorSubject, Observable, filter, map } from 'rxjs';
+import { Router, RouteLocationNormalized } from 'vue-router';
+
+export class RxRouter {
+  private router: Router;
+  private currentRoute$ = new BehaviorSubject<RouteLocationNormalized | null>(null);
+
+  constructor(router: Router) {
+    this.router = router;
+    
+    // 监听路由变化并更新 BehaviorSubject
+    this.router.afterEach((to) => {
+      this.currentRoute$.next(to);
+    });
+  }
+
+  // 获取当前路由的 Observable
+  public getRoute(): Observable<RouteLocationNormalized> {
+    return this.currentRoute$.pipe(
+      filter((route): route is RouteLocationNormalized => route !== null)
+    );
+  }
+
+  // 获取当前路由对象
+  public getCurrentRoute(): RouteLocationNormalized | null {
+    return this.currentRoute$.getValue();
+  }
+
+  // 获取特定路由参数的 Observable
+  public getParam(paramName: string): Observable<string | undefined> {
+    return this.getRoute().pipe(
+      map(route => route.params[paramName] as string | undefined)
+    );
+  }
+
+  // 获取特定查询参数的 Observable
+  public getQuery(queryName: string): Observable<string | undefined> {
+    return this.getRoute().pipe(
+      map(route => route.query[queryName] as string | undefined)
+    );
+  }
+
+  // 导航方法
+  public navigate(path: string, query?: Record<string, string>): Promise<void> {
+    return this.router.push({ path, query });
+  }
+
+  // 替换当前路由
+  public replace(path: string, query?: Record<string, string>): Promise<void> {
+    return this.router.replace({ path, query });
+  }
+}
+```
+
+## 4. 集成到主路由文件
+
+现在，让我们将路由缓存和路由分析服务集成到主路由文件中：
+
+```typescript
+
+import { createRouter, createWebHistory } from 'vue-router';
+import { RxRouter } from './rxRouter';
+import { RouteConfigManager, EnhancedRouteConfig } from './routeConfig';
+import { PermissionService } from './permissionService';
+import { RouteGuard } from './routeGuard';
+import { RouteCacheService } from './routeCacheService';
+import { RouteAnalyticsService } from './routeAnalyticsService';
+
+// 基础路由配置
+const baseRoutes: EnhancedRouteConfig[] = [
+  {
+    path: '/',
+    component: () => import('../views/Home.vue'),
+    meta: {
+      title: '首页',
+      icon: 'home'
+    }
+  },
+  {
+    path: '/dashboard',
+    component: () => import('../views/Dashboard.vue'),
+    permissions: ['view-dashboard'],
+    meta: {
+      title: '仪表盘',
+      icon: 'dashboard'
+    }
+  },
+  {
+    path: '/admin',
+    component: () => import('../views/Admin.vue'),
+    permissions: ['admin'],
+    meta: {
+      title: '管理',
+      icon: 'admin'
+    },
+    children: [
+      {
+        path: 'users',
+        component: () => import('../views/Users.vue'),
+        permissions: ['manage-users'],
+        meta: {
+          title: '用户管理'
+        }
+      }
+    ]
+  },
+  {
+    path: '/unauthorized',
+    component: () => import('../views/Unauthorized.vue'),
+    meta: {
+      title: '无权限',
+      hidden: true
+    }
+  }
+];
+
+// 创建 Vue Router 实例
+const router = createRouter({
+  history: createWebHistory(),
+  routes: baseRoutes as any
+});
+
+// 创建 RxRouter 实例
+const rxRouter = new RxRouter(router);
+
+// 创建路由配置管理器
+const routeConfigManager = new RouteConfigManager(baseRoutes);
+
+// 创建权限服务
+const permissionService = new PermissionService(routeConfigManager);
+
+// 创建路由守卫
+const routeGuard = new RouteGuard(router, rxRouter, permissionService);
+
+// 创建路由缓存服务
+const routeCacheService = new RouteCacheService(rxRouter);
+
+// 创建路由分析服务
+const routeAnalyticsService = new RouteAnalyticsService(rxRouter);
+
+// 设置用户权限（通常在用户登录后设置）
+permissionService.setUserPermissions(['view-dashboard', 'admin']);
+
+export { 
+  router, 
+  rxRouter, 
+  routeConfigManager, 
+  permissionService,
+  routeCacheService,
+  routeAnalyticsService
+};
+
+```
+
+## 5. 创建路由缓存组件
+
+```vue
+<template>
+  <div class="cached-route-view">
+    <router-view v-slot="{ Component }">
+      <keep-alive :include="cachedComponents">
+        <component 
+          :is="Component" 
+          :key="$route.fullPath"
+          @cache-data="cacheComponentData"
+        />
+      </keep-alive>
+    </router-view>
+  </div>
+</template>
+
+<script lang="ts">
+import { defineComponent, ref, onMounted, watch } from 'vue';
+import { useRoute } from 'vue-router';
+import { routeCacheService } from '../router';
+
+export default defineComponent({
+  name: 'CachedRouteView',
+  setup() {
+    const route = useRoute();
+    const cachedComponents = ref<string[]>([]);
+    
+    // 从路由元数据中获取需要缓存的组件
+    const updateCachedComponents = () => {
+      const cacheEnabled = route.meta.cache !== false; // 默认启用缓存
+      
+      if (cacheEnabled && route.matched.length > 0) {
+        // 获取当前路由匹配的组件名称
+        const componentNames = route.matched
+          .filter(record => record.components?.default)
+          .map(record => {
+            const component = record.components?.default;
+            return component.name || '';
+          })
+          .filter(name => name); // 过滤掉没有名称的组件
+        
+        // 更新缓存列表
+        componentNames.forEach(name => {
+          if (!cachedComponents.value.includes(name)) {
+            cachedComponents.value.push(name);
+          }
+        });
+      }
+    };
+    
+    // 缓存组件数据
+    const cacheComponentData = (data: any) => {
+      if (route.path) {
+        routeCacheService.saveRouteData(route.path, data);
+      }
+    };
+    
+    // 监听路由变化
+    watch(() => route.path, updateCachedComponents, { immediate: true });
+    
+    // 初始化时尝试恢复路由状态
+    onMounted(() => {
+      updateCachedComponents();
+    });
+    
+    return {
+      cachedComponents,
+      cacheComponentData
+    };
+  }
+});
+</script>
+```
+
+## 6. 创建路由分析仪表盘组件
+
+```vue
+<template>
+  <div class="route-analytics-dashboard">
+    <h2>路由分析仪表盘</h2>
+    
+    <div class="analytics-section">
+      <h3>最常访问的路由</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>路径</th>
+            <th>访问次数</th>
+            <th>平均停留时间</th>
+            <th>最后访问</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="route in mostVisitedRoutes" :key="route.path">
+            <td>{{ route.path }}</td>
+            <td>{{ route.visits }}</td>
+            <td>{{ formatDuration(route.averageDuration) }}</td>
+            <td>{{ formatDate(route.lastVisit) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    
+    <div class="analytics-section">
+      <h3>停留时间最长的路由</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>路径</th>
+            <th>平均停留时间</th>
+            <th>访问次数</th>
+            <th>最后访问</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="route in longestDurationRoutes" :key="route.path">
+            <td>{{ route.path }}</td>
+            <td>{{ formatDuration(route.averageDuration) }}</td>
+            <td>{{ route.visits }}</td>
+            <td>{{ formatDate(route.lastVisit) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    
+    <div class="analytics-section">
+      <h3>最近访问的路由</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>路径</th>
+            <th>最后访问</th>
+            <th>访问次数</th>
+            <th>平均停留时间</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="route in recentlyVisitedRoutes" :key="route.path">
+            <td>{{ route.path }}</td>
+            <td>{{ formatDate(route.lastVisit) }}</td>
+            <td>{{ route.visits }}</td>
+            <td>{{ formatDuration(route.averageDuration) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    
+    <div class="actions">
+      <button @click="exportAnalytics">导出分析数据</button>
+      <button @click="clearAnalytics" class="danger">清除分析数据</button>
+    </div>
+  </div>
+</template>
+
+<script lang="ts">
+import { defineComponent, ref, onMounted } from 'vue';
+import { routeAnalyticsService } from '../router';
+import { RouteAnalytics } from '../router/routeAnalyticsService';
+
+export default defineComponent({
+  name: 'RouteAnalyticsDashboard',
+  setup() {
+    const mostVisitedRoutes = ref<RouteAnalytics[]>([]);
+    const longestDurationRoutes = ref<RouteAnalytics[]>([]);
+    const recentlyVisitedRoutes = ref<RouteAnalytics[]>([]);
+    
+    // 格式化持续时间
+    const formatDuration = (ms: number): string => {
+      if (ms < 1000) {
+        return `${ms}毫秒`;
+      } else if (ms < 60000) {
+        return `${(ms / 1000).toFixed(1)}秒`;
+      } else {
+        return `${(ms / 60000).toFixed(1)}分钟`;
+      }
+    };
+    
+    // 格式化日期
+    const formatDate = (timestamp: number): string => {
+      return new Date(timestamp).toLocaleString();
+    };
+    
+    // 更新分析数据
+    const updateAnalytics = () => {
+      mostVisitedRoutes.value = routeAnalyticsService.getMostVisitedRoutes();
+      longestDurationRoutes.value = routeAnalyticsService.getLongestDurationRoutes();
+      recentlyVisitedRoutes.value = routeAnalyticsService.getRecentlyVisitedRoutes();
+    };
+    
+    // 导出分析数据
+    const exportAnalytics = () => {
+      const analyticsJson = routeAnalyticsService.exportAnalytics();
+      const blob = new Blob([analyticsJson], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `route-analytics-${new Date().toISOString()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    };
+    
+    // 清除分析数据
+    const clearAnalytics = () => {
+      if (confirm('确定要清除所有路由分析数据吗？')) {
+        routeAnalyticsService.clearAnalytics();
+        updateAnalytics();
+      }
+    };
+    
+    // 初始化
+    onMounted(() => {
+      updateAnalytics();
+      
+      // 监听路由转换，实时更新分析数据
+      const subscription = routeAnalyticsService.getRouteTransitions().subscribe(() => {
+        updateAnalytics();
+      });
+      
+      // 组件卸载时取消订阅
+      return () => subscription.unsubscribe();
+    });
+    
+    return {
+      mostVisitedRoutes,
+      longestDurationRoutes,
+      recentlyVisitedRoutes,
+      formatDuration,
+      formatDate,
+      exportAnalytics,
+      clearAnalytics
+    };
+  }
+});
+</script>
+
+<style scoped>
+.route-analytics-dashboard {
+  padding: 20px;
+}
+
+.analytics-section {
+  margin-bottom: 30px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+th, td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+}
+
+th {
+  background-color: #f2f2f2;
+}
+
+.actions {
+  margin-top: 20px;
+}
+
+button {
+  padding: 8px 16px;
+  margin-right: 10px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #45a049;
+}
+
+button.danger {
+  background-color: #f44336;
+}
+
+button.danger:hover {
+  background-color: #d32f2f;
+}
+</style>
+```
+
+## 7. 创建可缓存的组件示例
+
+下面是一个可以利用路由缓存的组件示例：
+
+```vue
+<template>
+  <div class="cacheable-form">
+    <h2>可缓存表单</h2>
+    
+    <form @submit.prevent="submitForm">
+      <div class="form-group">
+        <label for="name">姓名</label>
+        <input type="text" id="name" v-model="formData.name" />
+      </div>
+      
+      <div class="form-group">
+        <label for="email">邮箱</label>
+        <input
+```
+
+---
+
+---
+url: /Rxj.md
+---
+# 理解和运用 RxJS 中的 Subject
+
+在 RxJS 中，Subject 是一种特殊类型的 Observable，它既可以作为 Observable（可被订阅），又可以作为 Observer（可以发送值）。这种双重角色使 Subject 成为多播的重要工具。
+
+## Subject 的主要特点
+
+1. **多播能力**：一个 Subject 可以向多个 Observer 发送相同的值
+2. **既是 Observable 又是 Observer**：可以订阅其他 Observable，也可以被其他 Observer 订阅
+3. **热 Observable**：Subject 是热的，即使没有订阅者，它也会发出值
+4. **多种变体**：包括 BehaviorSubject、ReplaySubject、AsyncSubject 等
+
+## 复杂 Demo：实时数据处理系统
+
+下面是一个模拟实时数据处理系统的复杂示例，展示了如何灵活运用 Subject：
+
+```typescript
+import { Subject, BehaviorSubject, ReplaySubject, Observable, interval, merge } from 'rxjs';
+import { map, filter, scan, take, takeUntil, tap, debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
+
+// 模拟一个实时数据处理系统
+class RealTimeDataSystem {
+  // 用于发送原始数据
+  private dataSource$ = new Subject<any>();
+  
+  // 用于存储当前系统状态
+  private systemState$ = new BehaviorSubject<string>('初始化中');
+  
+  // 用于记录最近的错误信息
+  private errorLog$ = new ReplaySubject<string>(5);
+  
+  // 用于通知系统关闭
+  private shutdown$ = new Subject<void>();
+  
+  // 模拟数据源
+  private simulatedData$ = interval(1000).pipe(
+    map(i => ({ id: i, value: Math.random() * 100, timestamp: Date.now() })),
+    takeUntil(this.shutdown$)
+  );
+  
+  // 处理后的数据流
+  public processedData$: Observable<any>;
+  
+  // 系统状态的可观察流
+  public get systemStatus$(): Observable<string> {
+    return this.systemState$.asObservable();
+  }
+  
+  // 错误日志的可观察流
+  public get errors$(): Observable<string> {
+    return this.errorLog$.asObservable();
+  }
+  
+  constructor() {
+    // 启动模拟数据源
+    this.simulatedData$.subscribe(
+      data => this.dataSource$.next(data),
+      err => this.handleError('数据源错误: ' + err)
+    );
+    
+    // 处理数据流
+    this.processedData$ = this.dataSource$.pipe(
+      tap(() => {
+        if (this.systemState$.value === '初始化中') {
+          this.systemState$.next('运行中');
+        }
+      }),
+      filter(data => data.value > 30), // 过滤掉小于30的数据
+      scan((acc, curr) => {
+        // 累积处理数据
+        return {
+          ...curr,
+          movingAverage: acc.movingAverage 
+            ? (acc.movingAverage * 0.8 + curr.value * 0.2) 
+            : curr.value
+        };
+      }, { movingAverage: null }),
+      debounceTime(300), // 防抖
+      distinctUntilChanged((prev, curr) => 
+        Math.abs(prev.movingAverage - curr.movingAverage) < 5
+      )
+    );
+    
+    // 监控系统状态变化
+    this.systemState$.pipe(
+      distinctUntilChanged(),
+      tap(state => console.log(`系统状态变更为: ${state}`))
+    ).subscribe();
+  }
+  
+  // 添加新的数据源
+  public addDataSource(source$: Observable<any>): void {
+    source$.pipe(
+      takeUntil(this.shutdown$)
+    ).subscribe(
+      data => this.dataSource$.next(data),
+      err => this.handleError('外部数据源错误: ' + err)
+    );
+  }
+  
+  // 处理错误
+  private handleError(errorMsg: string): void {
+    console.error(errorMsg);
+    this.errorLog$.next(`${new Date().toISOString()}: ${errorMsg}`);
+    
+    // 如果错误太多，可能需要更改系统状态
+    this.errorLog$.pipe(
+      take(10),
+      scan((count) => count + 1, 0)
+    ).subscribe(count => {
+      if (count >= 5) {
+        this.systemState$.next('警告：错误频繁');
+      }
+    });
+  }
+  
+  // 手动发送数据
+  public sendData(data: any): void {
+    this.dataSource$.next(data);
+  }
+  
+  // 更改系统状态
+  public changeState(newState: string): void {
+    this.systemState$.next(newState);
+  }
+  
+  // 关闭系统
+  public shutdownSystem(): void {
+    this.systemState$.next('关闭中');
+    this.shutdown$.next();
+    this.shutdown$.complete();
+    
+    // 完成所有Subject
+    setTimeout(() => {
+      this.dataSource$.complete();
+      this.systemState$.complete();
+      this.errorLog$.complete();
+      console.log('系统已完全关闭');
+    }, 1000);
+  }
+}
+
+// 使用示例
+const dataSystem = new RealTimeDataSystem();
+
+// 订阅处理后的数据
+const dataSubscription = dataSystem.processedData$.subscribe(
+  data => console.log('处理后的数据:', data),
+  err => console.error('数据处理错误:', err),
+  () => console.log('数据流已完成')
+);
+
+// 订阅系统状态
+const statusSubscription = dataSystem.systemStatus$.subscribe(
+  status => console.log(`当前系统状态: ${status}`)
+);
+
+// 订阅错误日志
+const errorSubscription = dataSystem.errors$.subscribe(
+  error => console.log(`错误日志: ${error}`)
+);
+
+// 添加自定义数据源
+const customSource$ = interval(3000).pipe(
+  map(i => ({ id: `custom-${i}`, value: Math.random() * 200, timestamp: Date.now(), source: 'custom' }))
+);
+dataSystem.addDataSource(customSource$);
+
+// 手动发送一些数据
+setTimeout(() => {
+  dataSystem.sendData({ id: 'manual-1', value: 75, timestamp: Date.now(), source: 'manual' });
+}, 5000);
+
+// 改变系统状态
+setTimeout(() => {
+  dataSystem.changeState('高负载模式');
+}, 8000);
+
+// 10秒后关闭系统
+setTimeout(() => {
+  console.log('准备关闭系统...');
+  dataSystem.shutdownSystem();
+  
+  // 清理订阅
+  dataSubscription.unsubscribe();
+  statusSubscription.unsubscribe();
+  errorSubscription.unsubscribe();
+}, 15000);
+```
+
+## 这个示例展示了 Subject 的多种用法：
+
+1. **基本 Subject (dataSource$)**：
+   * 作为数据的中心枢纽，接收来自多个源的数据
+   * 允许多个观察者订阅相同的数据流
+
+2. **BehaviorSubject (systemState$)**：
+   * 保存系统的当前状态
+   * 新订阅者立即获得最新状态
+   * 用于状态管理
+
+3. **ReplaySubject (errorLog$)**：
+   * 记录最近的5条错误信息
+   * 新订阅者可以获取历史错误记录
+   * 用于日志和历史记录
+
+4. **Subject 作为终止信号 (shutdown$)**：
+   * 用于通知系统关闭
+   * 结合 takeUntil 操作符使用
+
+5. **多播能力**：
+   * 一个数据源被多个处理流程订阅
+   * 状态变化广播给所有相关组件
+
+这个示例还展示了如何将 Subject 与各种操作符结合使用，如 filter、scan、debounceTime 等，以构建复杂的响应式数据处理流程。
+
+---
+
+---
+url: /life.md
+---
+# 生活随录ssss
+
+:::code-group 提示
+
+```js [测试 1]
+const a = 1;
+```
+
+```ts [测试 2]
+const a = 2;
+```
+
+```tsx [测试 3]
+const a = 3;
+```
+
+:::
+
+## 一
+
+## 二
+
+## 三
+
+---
+
+---
+url: /javascript/imageInCanvas.md
+---
+# 用JavaScript将Canvas内容转化成图片的方法
+
+```javascript
+
+const convertImageToCanvas = (image) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = image.width;
+    canvas.height = image.height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(image, 0, 0);
+    return canvas;
+}
+
+```
+
+# 用JavaScript将画布保持成图片格式
+
+```javascript
+
+const convertCanvasToImage = (canvas) => {
+    const image = new Image();
+    image.onload = () => {
+        // 图片加载完成后，可以进行进一步处理
+      image.src = canvas.toDataURL('image/png');
+    };
+    return image;
+}
+
+```
+
+---
+
+---
+url: /movie-seat-selection/README.md
+---
+# 电影票选座系统
+
+这是一个基于HTML Canvas的电影票选座系统，允许用户通过点击交互选择和取消选择电影院座位。支持手势缩放功能，方便在移动设备上查看和选择座位。
+
+## 功能特点
+
+* 使用HTML5 Canvas绘制电影院座位图
+* 点击选中座位，再次点击取消选择
+* 默认座位为未选中状态
+* 显示已选座位的行数和列数信息
+* 支持一键清除所有选择
+* 支持自定义行数、列数和颜色等配置
+* **支持手势缩放和平移功能**：
+  * 双指捏合手势进行缩放（移动设备）
+  * 鼠标滚轮缩放（桌面设备）
+  * 拖动画布进行平移
+  * 支持重置视图功能
+
+## 使用方法
+
+1. 将`index.html`和`script.js`文件放在同一目录下
+2. 在浏览器中打开`index.html`文件
+3. 点击座位进行选择或取消选择
+4. 已选择的座位信息会显示在下方
+5. 使用以下方式进行缩放和平移：
+   * **触摸设备**：双指捏合进行缩放，单指拖动画布
+   * **桌面设备**：使用鼠标滚轮缩放，按住鼠标左键拖动画布
+   * 点击"重置视图"按钮返回原始视图
+
+## 自定义配置
+
+可以通过修改`MovieSeatSelection`类的初始化参数来自定义座位选择界面：
+
+```javascript
+const seatSelection = new MovieSeatSelection('seatCanvas', 'selectedSeats', {
+    rows: 8,             // 座位行数
+    cols: 12,            // 座位列数
+    seatSize: 30,        // 座位大小(像素)
+    seatPadding: 10,     // 座位间距(像素)
+    seatColor: '#ccc',   // 未选中座位颜色
+    selectedColor: '#66aaff', // 选中座位颜色
+    borderColor: '#999', // 座位边框颜色
+    textColor: '#333',   // 文字颜色
+    showRowColLabels: true, // 是否显示行列标签
+    labelPadding: 30,    // 标签间距
+    seatRadius: 5,       // 座位圆角半径
+    minScale: 0.5,       // 最小缩放比例
+    maxScale: 3,         // 最大缩放比例
+    initialScale: 1      // 初始缩放比例
+});
+```
+
+## API
+
+该`MovieSeatSelection`类提供以下方法：
+
+* `clearSelection()`: 清除所有选中的座位
+* `getSelectedSeats()`: 获取当前选中的座位数组
+* `preselectSeats(seats)`: 预选座位，传入一个包含`{row, col}`对象的数组
+* `resetView()`: 重置缩放和平移状态到初始视图
+
+## 技术实现
+
+* 使用HTML5 Canvas绘制座位和标签
+* 使用事件委托处理座位点击
+* 支持触摸和鼠标事件处理
+* 实现画布的变换（缩放和平移）
+* 使用面向对象编程思想封装功能
+* 支持自定义配置和外部API
+* 响应式设计，适配不同设备
+
+## 移动设备支持
+
+系统针对移动设备做了特别优化：
+
+* 添加了触摸事件支持（touchstart, touchmove, touchend）
+* 使用 touch-action: none 防止浏览器默认的触摸行为干扰
+* 针对移动设备提供了响应式样式调整
+* 添加了直观的使用说明
+
+## 示例
+
+```html
+<!-- HTML部分 -->
+<div class="canvas-container">
+    <canvas id="seatCanvas"></canvas>
+</div>
+<div id="selectedSeats"></div>
+<button id="resetViewButton">重置视图</button>
+
+<!-- JavaScript部分 -->
+<script src="script.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const seatSelection = new MovieSeatSelection('seatCanvas', 'selectedSeats', {
+            minScale: 0.5,
+            maxScale: 3
+        });
+        
+        document.getElementById('resetViewButton').addEventListener('click', function() {
+            seatSelection.resetView();
+        });
+    });
+</script>
+```
+
+---
+
+---
+url: /javascript/analysisService.md
+---
+# 退出浏览器前，发送积压的埋点请求，该如何去做？
+
+## 功能分析
+
+我已经创建了一个新的埋点服务类 AnalyticsService，它具有以下特性：
+
+1. 单例模式：确保整个应用只有一个埋点服务实例。
+2. 事件队列：
+
+* 使用队列存储待发送的埋点事件
+* 支持批量发送（默认每10个事件发送一次）
+* 定时发送（默认每5秒检查一次）
+
+3. 浏览器关闭前发送：
+
+* 使用 beforeunload 事件监听浏览器关闭
+* 使用 navigator.sendBeacon API 在页面关闭时发送数据，这个 API 专门用于处理页面卸载时的数据发送
+* 将所有积压的事件打包成一个请求发送
+
+4. 错误处理：
+
+* 如果发送失败，事件会被放回队列
+* 使用 isProcessing 标志防止重复发送
+
+## 具体代码
+
+```ts
+import axios from 'axios';
+
+interface TrackEvent {
+  eventName: string;
+  properties: Record<string, any>;
+  timestamp: number;
+}
+
+class AnalyticsService {
+  private static instance: AnalyticsService;
+  private eventQueue: TrackEvent[] = [];
+  private readonly batchSize: number = 10;
+  private readonly flushInterval: number = 5000; // 5 seconds
+  private flushTimer: number | null = null;
+  private isProcessing: boolean = false;
+
+  private constructor() {
+    this.setupBeforeUnload();
+    this.startFlushTimer();
+  }
+
+  public static getInstance(): AnalyticsService {
+    if (!AnalyticsService.instance) {
+      AnalyticsService.instance = new AnalyticsService();
+    }
+    return AnalyticsService.instance;
+  }
+
+  private setupBeforeUnload(): void {
+    window.addEventListener('beforeunload', (event) => {
+      // 确保在页面关闭前发送所有积压的事件
+      if (this.eventQueue.length > 0) {
+        const blob = new Blob(
+          [JSON.stringify({ events: this.eventQueue })],
+          { type: 'application/json' }
+        );
+        // 使用 sendBeacon 发送数据，这个 API 专门用于在页面卸载时发送数据
+        navigator.sendBeacon('/api/analytics/events', blob);
+        this.eventQueue = [];
+      }
+    });
+  }
+
+  private startFlushTimer(): void {
+    this.flushTimer = window.setInterval(() => {
+      this.flush();
+    }, this.flushInterval);
+  }
+
+  public track(eventName: string, properties: Record<string, any> = {}): void {
+    const event: TrackEvent = {
+      eventName,
+      properties,
+      timestamp: Date.now()
+    };
+    
+    this.eventQueue.push(event);
+
+    // 当队列中的事件数量达到批量发送的阈值时，触发发送
+    if (this.eventQueue.length >= this.batchSize) {
+      this.flush();
+    }
+  }
+
+  private async flush(): Promise<void> {
+    if (this.isProcessing || this.eventQueue.length === 0) {
+      return;
+    }
+
+    this.isProcessing = true;
+    const eventsToSend = [...this.eventQueue];
+    this.eventQueue = [];
+
+    try {
+      await axios.post('/api/analytics/events', {
+        events: eventsToSend
+      });
+    } catch (error) {
+      // 发送失败时，将事件放回队列
+      this.eventQueue = [...eventsToSend, ...this.eventQueue];
+      console.error('Failed to send analytics events:', error);
+    } finally {
+      this.isProcessing = false;
+    }
+  }
+
+  public destroy(): void {
+    if (this.flushTimer) {
+      window.clearInterval(this.flushTimer);
+      this.flushTimer = null;
+    }
+  }
+}
+
+// 导出单例实例
+export const analytics = AnalyticsService.getInstance(); 
+
+```
+
+## 这个实现有以下优点：
+
+1. 使用 navigator.sendBeacon API，这是浏览器专门为页面卸载时发送数据设计的 API，它比 XMLHttpRequest 或 fetch 更可靠。
+2. 批量处理：不是每个事件都立即发送，而是积累到一定数量或定时发送，减少服务器压力。
+3. 自动重试：如果发送失败，事件会被放回队列，等待下次发送。
+4. 类型安全：使用 TypeScript 编写，提供了良好的类型提示。
+   你需要在后端实现对应的 /api/analytics/events 接口来接收这些事件数据。后端接口需要能够处理：
+5. 普通的 POST 请求（用于正常的批量上报）
+6. Beacon 请求（用于页面关闭时的上报）
+   你可以根据实际需求调整以下参数：
+   * batchSize：批量发送的阈值（默认10个事件）
+   * flushInterval：定时发送的间隔（默认5秒）
+   * 接口地址：目前是写死的 /api/analytics/events，你可以根据实际需求修改
+
+---
+
+---
+url: /guide/vue3_vite.md
+---
+# 通过vite-plugin-svg-icons 使用SVG图片
+
+## 一、安装 `vite-plugin-svg-icons`
+
+```js
+npm i vite-plugin-svg-icons -D
+// 或者
+yarn add vite-plugin-svg-icons -D
+```
+
+## 二、在 `main.js` 中注册
+
+```js
+import 'virtual:svg-icons-register'
+```
+
+## 三、在 `src` 目录下 新建文件夹 `icons` 如图:
+
+![](./img/vue3_1.jpg)
+
+## 四、在 vite.config.js 里配置
+
+```js
+import { defineConfig } from 'vite'
+import { createSvgIconsPlugin } from 'vite-plugin-svg-icons'
+import path, { resolve } from "path";
+
+export default defineConfig(({ mode }) => {
+  // ...
+  return {
+    plugins: [
+      createSvgIconsPlugin({
+        iconDirs: [resolve(process.cwd(), 'src/icons')],
+        symbolId: '[name]'
+      })
+    ],
+  }
+})
+```
+
+## 五、新建 `svg` 组件
+
+目录结构如下：
+![](./img//vue3_2.jpg)
+
+```vue
+<template>
+  <svg :class="svgClass" aria-hidden="true">
+    <use :href="iconName" />
+  </svg>
+</template>
+ 
+<script setup>
+import { computed } from 'vue'
+const props = defineProps({
+  name: {
+    type: String,
+    Boolean,
+    required: true,
+  },
+  className: {
+    type: String,
+    default: "",
+  },
+  color: {
+    type: String,
+    default: "#889aa4",
+  },
+});
+const iconName = computed(() => (`#${props.name}`));
+const svgClass = computed(() => {
+  if (props.className) {
+    return `svg-icon ${props.className}`;
+  }
+  return "svg-icon";
+});
+</script>
+ 
+<style scoped>
+.svg-icon {
+  width: 1em;
+  height: 1em;
+  fill: currentColor;
+  vertical-align: middle;
+  color: inherit;
+  outline: none;
+}
+</style>
+```
+
+## 六、在 `main.js` 注册为全局组件
+
+```js
+import svgIcon from './components/svgIcon/index.vue'
+const app = createApp(App)
+app.component('svg-icon', svgIcon).mount('#app')
+```
+
+:::tip 按需引用
+如果不想要注册全局组件也可以直接引用组件并使用
+:::
+
+```vue
+<template>
+ 
+  <SvgIcon name="issue"></SvgIcon>
+ 
+</template>
+ 
+<script setup>
+import SvgIcon from "@/components/SvgIcon.vue";
+</script>
+```
+
+## 七、使用组件
+
+```vue
+<template>
+  <svg-icon name="car" class="any" />
+</template>
+```
