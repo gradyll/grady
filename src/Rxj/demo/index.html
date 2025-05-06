@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+
+</head>
+
+<body>
+  收拾收拾
+  <script type="module">
+    import { Subject, fromEvent, interval, from, scan, throttleTime, map, Observable } from 'https://cdn.jsdelivr.net/npm/rxjs@7.8.2/+esm'
+
+    fromEvent(document, 'click').subscribe((e) => {
+      console.log(e)
+    })
+
+
+    // fromEvent(document, 'click').pipe(
+    //   scan((count) => count + 1, 0)
+    // ).subscribe((count) => {
+    //   console.log(`Clicked ${count} times`)
+    // })
+
+    // fromEvent(document, 'click')
+    // .pipe(
+    //   throttleTime(1000),
+    //   map((e) => e.clientX),
+    //   scan((count, clientX) => count + clientX, 0)
+    // )
+    // .subscribe((count) => console.log(count))
+
+
+    // const observable = new Observable((subscriber) => {
+
+    //   subscriber.next(1);
+    //   subscriber.next(2);
+    //   subscriber.next(3);
+    //   setTimeout(() => {
+    //     subscriber.next(4);
+    //     subscriber.complete();
+    //   }, 1000);
+
+    // })
+
+    // console.log('just before subscribe');
+
+    // observable.subscribe({
+    //   next(x) {
+    //     console.log('got value ' + x);
+    //   },
+    //   error(err) {
+    //     console.error('something wrong occurred: ' + err);
+    //   },
+    //   complete() {
+    //     console.log('done');
+    //   }
+
+    // })
+
+    // console.log('just after subscribe');
+
+
+    // 什么是 subscription？Subscription 是一个表示一次性资源的对象，通常是 Observable 的执行
+    /**
+     * Subscription 本质上只是具有unsubscribe()释放资源或者取消 Observable 执行的功能。
+     *
+     *
+    */
+
+    // const observable1 = interval(400)
+    // const observable2 = interval(300)
+
+    // const subscription1 = observable1.subscribe(x => console.log('first: ' + x))
+    // const childSubscription = observable2.subscribe(x => console.log('second:'+ x))
+
+    // subscription1.add(childSubscription)
+    // setTimeout(() => {
+    //   // Unsubscribes BOTH subscription and childSubscription
+    //   subscription1.unsubscribe()
+    // }, 1000)
+
+
+    /**
+     * Subject
+     * 什么是主题？ RxJS 主题是一种特殊类型的可观察对象，允许将值多播到多个观察者。普通的可观察对象是单播的（每个订阅的观察者都拥有可观察对象的独立执行），而主题是多播的。
+     * 
+     * 主题类似于可观察对象，但可以向多个观察者进行多播。主题类似于事件发射器：它们维护着多个侦听器的注册表。
+
+      每个主题都是一个可观察对象。给定一个主题，您可以subscribe向其提供一个观察者，观察者将开始正常接收值。从观察者的角度来看，它无法判断可观察对象的执行是来自普通的单播可观察对象还是主题。
+
+      题内部，subscribe不会调用传递值的新执行。它只是将给定的观察者注册到观察者列表中，类似于addListener其他库和语言中的通常工作方式。
+
+      每个主题都是一个观察者。它是一个具有方法next(v)、error(e)和 的对象complete()。要向主题提供新值，只需调用next(theValue)，它将被多播到已注册以监听主题的观察者。
+    */
+
+    // 在下面的例子中，我们有两个观察者附加到一个主题，并且我们向主题提供一些值
+    // const subject = new Subject()
+
+    // subject.subscribe({
+    //   next: (v) => console.log('observerA: ' + v),
+    // })
+    // subject.subscribe({
+    //   next: (v) => console.log('observerB: ' + v),
+    // })
+
+    // subject.next(1)
+    // subject.next(2)
+
+
+    const subject = new Subject()
+    subject.subscribe({
+      next: (v) => console.log('observerA:' + v),
+    })
+    subject.subscribe({
+      next: (v) => console.log('observerB:' + v),
+    })
+
+    const observable = from([1, 2, 3])
+
+    observable.subscribe(subject)
+
+
+
+
+  </script>
+</body>
+
+</html>

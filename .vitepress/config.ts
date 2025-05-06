@@ -1,5 +1,6 @@
 import { defineConfigWithTheme } from 'vitepress'
 import Git from 'simple-git'
+import llmstext from 'vitepress-plugin-llms'
 
 const git = Git({
   maxConcurrentProcesses: 200,
@@ -30,6 +31,9 @@ export default defineConfigWithTheme({
   head: [
     ["link", { rel: "icon", href: "/grady/logo.png" }]
   ],
+  vite: {
+    plugins: [llmstext()],
+  },
   themeConfig: {
     // outlineTitle: 'In hac pagina',
     lastUpdatedText: '上次更新时间',
@@ -140,6 +144,8 @@ export default defineConfigWithTheme({
             { text: '精通Git', link: '/javascript/Git' },
             { text: '混合APP与H5的区别', link: '/javascript/h5' },
             { text: 'mockjs拦截原理', link: '/javascript/mockjs拦截原理' },
+            { text: '画布和图片或换', link: '/javascript/imageInCanvas' },
+            { text: '发送积压埋点信息', link: '/javascript/analysisService' },
           ]
         },
       ],
