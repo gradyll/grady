@@ -59,6 +59,22 @@ export default defineConfigWithTheme({
         ]
       },
       {
+        text: '前端框架',
+        activeMatch: '^/frontEndFramework/',
+        items: [
+          { text: 'Vue3', link: '/frontEndFramework/vue3' },
+          { text: 'React', link: '/frontEndFramework/react' },
+        ]
+      },
+      {
+        text: '后端框架',
+        activeMatch: '^/backendFramework/',
+        items: [
+          { text: 'Node', link: '/backendFramework/node' },
+          { text: 'Python', link: '/backendFramework/python' },
+        ]
+      },
+      {
         text: '工作记录',
         activeMatch: '^/workLog/',
         link: '/workLog/index'
@@ -103,6 +119,28 @@ export default defineConfigWithTheme({
           ]
         },
       ],
+      '/backendFramework/': [
+        {
+          text: '后端框架',
+          collapsible: true,
+          collapsed: false, // 默认展开还是收起
+          items: [
+            { text: 'Node', link: '/backendFramework/node' },
+            { text: 'Python', link: '/backendFramework/python' },
+          ]
+        }
+      ],
+      // '/frontEndFramework/': [
+      //   {
+      //     text: '前端框架',
+      //     collapsible: true,
+      //     collapsed: false, // 默认展开还是收起
+      //     items: [
+      //       { text: 'Vue3', link: '/frontEndFramework/vue3' },
+      //       { text: 'React', link: '/frontEndFramework/react' },
+      //     ]
+      //   }
+      // ],
       // '/vueAnalysis/': [
       //   {
       //     text: 'Vue',
