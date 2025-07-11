@@ -1,5 +1,5 @@
 ---
-url: /guide/design-pattern.md
+url: /grady/guide/design-pattern.md
 ---
 # JavaScript设计模式与开发实践
 

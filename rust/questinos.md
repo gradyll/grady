@@ -1,5 +1,5 @@
 ---
-url: /rust/questinos.md
+url: /grady/rust/questinos.md
 ---
 # Rust 开发过程的问题集
 

@@ -1,5 +1,5 @@
 ---
-url: /javascript/imageInCanvas.md
+url: /grady/javascript/imageInCanvas.md
 ---
 # 用JavaScript将Canvas内容转化成图片的方法
 

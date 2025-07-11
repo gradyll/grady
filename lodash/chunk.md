@@ -1,5 +1,5 @@
 ---
-url: /lodash/chunk.md
+url: /grady/lodash/chunk.md
 ---
 # chunk
 

@@ -1,5 +1,5 @@
 ---
-url: /lodash/getRawTag.md
+url: /grady/lodash/getRawTag.md
 ---
 # getRawTag
 

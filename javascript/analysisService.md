@@ -1,5 +1,5 @@
 ---
-url: /javascript/analysisService.md
+url: /grady/javascript/analysisService.md
 ---
 # 退出浏览器前，发送积压的埋点请求，该如何去做？
 

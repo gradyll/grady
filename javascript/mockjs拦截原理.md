@@ -1,5 +1,5 @@
 ---
-url: /javascript/mockjs拦截原理.md
+url: /grady/javascript/mockjs拦截原理.md
 ---
 # mockjs拦截原理
 

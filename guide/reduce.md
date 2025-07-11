@@ -1,5 +1,5 @@
 ---
-url: /guide/reduce.md
+url: /grady/guide/reduce.md
 ---
 # reduce 用法
 

@@ -1,5 +1,5 @@
 ---
-url: /lodash.md
+url: /grady/lodash.md
 ---
 
 # Lodash

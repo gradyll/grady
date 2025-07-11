@@ -1,5 +1,5 @@
 ---
-url: /guide/js2file.md
+url: /grady/guide/js2file.md
 ---
 # js 图片URL转file 文件对象
 

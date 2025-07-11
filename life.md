@@ -1,5 +1,5 @@
 ---
-url: /life.md
+url: /grady/life.md
 ---
 # 生活随录ssss
 

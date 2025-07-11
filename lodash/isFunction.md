@@ -1,5 +1,5 @@
 ---
-url: /lodash/isFunction.md
+url: /grady/lodash/isFunction.md
 ---
 # isFunction
 

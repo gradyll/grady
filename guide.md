@@ -1,5 +1,5 @@
 ---
-url: /guide.md
+url: /grady/guide.md
 ---
 # Commitizen规范化提交代码
 

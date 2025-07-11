@@ -1,5 +1,5 @@
 ---
-url: /vueAnalysis.md
+url: /grady/vueAnalysis.md
 ---
 # Vue2
 

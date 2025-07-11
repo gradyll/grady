@@ -1,5 +1,5 @@
 ---
-url: /javascript.md
+url: /grady/javascript.md
 ---
 # JavaScript
 
@@ -252,7 +252,7 @@ var deepProxy = function(obj) {
 deepProxy(person);
 ```
 
-![image.png](./img/proxy-1.png)
+![image.png](/assets/proxy-1.BirkII0n.png)
 这就是我说为什么不准确的原因了, 所以万不得已，真心不推荐用递归的方式去设置Proxy, 当然，有办法递归设置Proxy，咱们就有办法给它还原
 
 ```javascript

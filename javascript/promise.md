@@ -1,5 +1,5 @@
 ---
-url: /javascript/promise.md
+url: /grady/javascript/promise.md
 ---
 # Promise 相关知识
 

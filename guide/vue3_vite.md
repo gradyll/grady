@@ -1,5 +1,5 @@
 ---
-url: /guide/vue3_vite.md
+url: /grady/guide/vue3_vite.md
 ---
 # 通过vite-plugin-svg-icons 使用SVG图片
 
@@ -19,7 +19,7 @@ import 'virtual:svg-icons-register'
 
 ## 三、在 `src` 目录下 新建文件夹 `icons` 如图:
 
-![](./img/vue3_1.jpg)
+![](/assets/vue3_1.BtcBq8Y-.jpg)
 
 ## 四、在 vite.config.js 里配置
 
@@ -44,7 +44,7 @@ export default defineConfig(({ mode }) => {
 ## 五、新建 `svg` 组件
 
 目录结构如下：
-![](./img//vue3_2.jpg)
+![](/assets/vue3_2.DKl2luV7.jpg)
 
 ```vue
 <template>

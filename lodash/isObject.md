@@ -1,5 +1,5 @@
 ---
-url: /lodash/isObject.md
+url: /grady/lodash/isObject.md
 ---
 # isObject
 

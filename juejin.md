@@ -1,4 +1,4 @@
 ---
-url: /juejin.md
+url: /grady/juejin.md
 ---
 

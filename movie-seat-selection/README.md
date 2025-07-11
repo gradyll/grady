@@ -1,5 +1,5 @@
 ---
-url: /movie-seat-selection/README.md
+url: /grady/movie-seat-selection/README.md
 ---
 # 电影票选座系统
 

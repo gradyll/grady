@@ -1,5 +1,5 @@
 ---
-url: /javascript/advance.md
+url: /grady/javascript/advance.md
 ---
 # JavaScript 进阶
 

@@ -1,5 +1,5 @@
 ---
-url: /workLog.md
+url: /grady/workLog.md
 ---
 # 如何发布之后自动更新
 

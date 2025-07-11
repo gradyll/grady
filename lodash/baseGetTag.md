@@ -1,5 +1,5 @@
 ---
-url: /lodash/baseGetTag.md
+url: /grady/lodash/baseGetTag.md
 ---
 # baseGetTag
 

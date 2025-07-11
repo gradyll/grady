@@ -1,5 +1,5 @@
 ---
-url: /Rxj/rxjs&vue-route.md
+url: /grady/Rxj/rxjs&vue-route.md
 ---
 ```ts rxRouter.ts
 import { BehaviorSubject, Observable, filter, map } from 'rxjs';

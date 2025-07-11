@@ -1,5 +1,5 @@
 ---
-url: /javascript/Git.md
+url: /grady/javascript/Git.md
 ---
 # Git 常用命令
 
