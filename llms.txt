@@ -22,6 +22,7 @@
 - [Vue3](/grady/frontEndFramework/vue3.md)
 - [列表 List](/grady/backendFramework/python/list.md)
 - [基础](/grady/backendFramework/python/basic.md)
+- [抖音财经热度分析项目说明](/grady/backendFramework/python/demo/README.md)
 - [添加路由缓存和路由分析功能](/grady/Rxj/rxjs&vue-route.md)
 - [理解和运用 RxJS 中的 Subject](/grady/Rxj.md)
 - [生活随录ssss](/grady/life.md)
