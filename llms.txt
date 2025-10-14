@@ -4,17 +4,61 @@
 
 ## Table of Contents
 
+### 掘金文章
 
+- [Untitled](/grady/juejin.md)
 
+### Guide
 
+- [Commitizen规范化提交代码](/grady/guide.md)
+- [通过vite-plugin-svg-icons 使用SVG图片](/grady/guide/vue3_vite.md)
+- [reduce 用法](/grady/guide/reduce.md)
+- [js 图片URL转file 文件对象](/grady/guide/js2file.md)
 
+### 设计模式与开发实践
 
+- [JavaScript设计模式与开发实践](/grady/guide/design-pattern.md)
+- [JavaScript设计模式与开发实践之设计模式](/grady/guide/design-pattern_2.md)
 
+### 后端框架
 
+- [Nodejs](/grady/backendFramework/node.md)
+- [Python 知识列表](/grady/backendFramework/python.md)
+
+### lodash
+
+- [Lodash](/grady/lodash.md)
+- [chunk](/grady/lodash/chunk.md)
+- [getRawTag](/grady/lodash/getRawTag.md)
+- [baseGetTag](/grady/lodash/baseGetTag.md)
+- [isObject](/grady/lodash/isObject.md)
+- [isObjectLike](/grady/lodash/isObjectLike.md)
+- [isPlainObject](/grady/lodash/isPlainObject.md)
+
+### Vue
+
+- [vue3 源码分析](/grady/vueNextAnalysis.md)
+
+### 面试之道
+
+- [JavaScript](/grady/javascript.md)
+- [JavaScript 进阶](/grady/javascript/advance.md)
+- [Promise 相关知识](/grady/javascript/promise.md)
+- [Git 常用命令](/grady/javascript/Git.md)
+- [H5 App开发技术如何进行选型 ？](/grady/javascript/h5.md)
+- [mockjs拦截原理](/grady/javascript/mockjs拦截原理.md)
+- [用JavaScript将Canvas内容转化成图片的方法](/grady/javascript/imageInCanvas.md)
+- [退出浏览器前，发送积压的埋点请求，该如何去做？](/grady/javascript/analysisService.md)
+
+### 工作记录
+
+- [如何发布之后自动更新](/grady/workLog.md)
 
 ### Other
 
+- [Flask](/grady/backendFramework/python/imooc_course/flask.md)
 - [isFunction](/grady/lodash/isFunction.md)
+- [Python Flask 全流程全栈项目实战](/grady/backendFramework/python/imooc_course.md)
 - [React](/grady/frontEndFramework/react.md)
 - [Rollup](/grady/rollup.md)
 - [Rust 开发过程的问题集](/grady/rust/questinos.md)
