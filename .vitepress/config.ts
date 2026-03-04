@@ -193,6 +193,7 @@ export default defineConfigWithTheme({
           collapsible: true,
           items: [
             { text: '如何发布版本更新', link: '/workLog/index' },
+            { text: '工作项目总结', link: '/workLog/work_project' },
           ]
         }
       ],
