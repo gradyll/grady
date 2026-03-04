@@ -53,6 +53,7 @@
 ### 工作记录
 
 - [如何发布之后自动更新](/grady/workLog.md)
+- [PC 项目困/难点总结](/grady/workLog/work_project.md)
 
 ### Other
 
