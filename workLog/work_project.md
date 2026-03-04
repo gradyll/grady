@@ -291,3 +291,195 @@ url: /grady/workLog/work_project.md
 ## 五、总结
 
 本项目综合了 **企业级权限、API 安全、大型表格、虚拟滚动、多 Tab 缓存、iframe 集成、多端打印、构建优化** 等前端常见难点，适合在面试中结合实际模块展开说明解决方案与个人贡献。
+
+# DMS 维修移动端项目 - 难点/挑战总结
+
+> 面向面试的项目难点提炼，便于阐述技术深度与解决思路
+
+***
+
+## 一、项目概述
+
+* **项目名称**：new-app-repair（DMS 维修移动端）
+* **技术栈**：Vue 3 + Vite 7 + TypeScript + Pinia + Vant 4
+* **业务域**：4S 店维修接车、委托书、结算、终检、索赔验真等全流程
+* **运行环境**：企业微信内嵌 H5，依赖企业微信 OAuth 与 JSSDK
+
+***
+
+## 二、架构与集成类难点
+
+### 2.1 多微服务 API 治理
+
+**难点描述**：后端为微服务架构，前端需对接 10+ 个 DMS 服务：
+
+| 服务 | 职责 | 典型场景 |
+|------|------|----------|
+| DMS\_REPAIR | 维修核心 | 接车、派工、委托书、结算 |
+| DMS\_COMMON | 公共能力 | 登录、字典、OCR、参数配置 |
+| DMS\_APP | 移动端专用 | 车辆检查、技师、质检、增项 |
+| DMS\_DATACENTER | 数据中心 | 车主、会员、维修历史 |
+| DMS\_OPSFILE | 文件服务 | 图片上传、OSS |
+| DMS\_CLAIMCENTER | 索赔中心 | 索赔验真 |
+| DMS\_WORKSHOP | 车间 | 派工 |
+| DMS\_PART | 配件 | 零件库存 |
+
+**挑战点**：
+
+* 统一 baseURL、超时、错误码处理，同时区分不同服务路径
+* 请求拦截器需注入 `accesstoken`、`userId`、`dealerCode`、`isApp`、`isFeign` 等公共头
+* 接口按业务模块拆分（`api/repair`、`api/common`、`api/balance` 等），URL 使用 `server.ts` 中的前缀常量，维护成本高
+
+***
+
+### 2.2 企业微信 OAuth + JSSDK 接入
+
+**难点描述**：登录与 SDK 依赖企业微信，流程复杂、调试受限。
+
+**登录流程**：
+
+1. 无 token 时重定向至企业微信 `oauth2/authorize`
+2. 回调带 `code`，在 `router.beforeEach` 中调用 `wechatLogin` 换取 token
+3. 登录成功写入 `useMainStore`，持久化至 sessionStorage
+4. 白名单页面（`/videoShow`、`/diagnosticReport` 等）可跳过鉴权
+
+**JSSDK 初始化**：
+
+* 需调用 `corpJsapiTicket` / `agentJsapiTicket` 获取签名
+* 签名与当前 URL 强绑定，SPA 路由变化后需重新 config
+* 多处页面（接车、结算、委托书、扫码等）复用同一套 `corpJsapiTicket` + 初始化逻辑
+* 开发环境需 mock，避免本地 URL 与签名不匹配
+
+**可提炼的面试点**：OAuth2、路由守卫与登录状态联动、URL 动态签名、企业微信 JSAPI 权限管理。
+
+***
+
+### 2.3 蓝牙 / OBD 检测集成
+
+**难点描述**：接车阶段需通过蓝牙 OBD 设备做 ECU 检测、故障码读取，涉及企微 BLE API 与底层协议。
+
+**技术链条**：
+
+1. **企微 JSSDK**：`openBluetoothAdapter`、`createBLEConnection`、`writeBLECharacteristicValue`、`notifyBLECharacteristicValueChange` 等
+2. **BLE 协议**：固定 UUID（SERVICE、Notify、Write），多种设备支持（如 2 套 UUID 映射）
+3. **数据解析**：二进制分包接收、`combineBluetoothPacket` 组包、`receiveMsgDeal` 解析 R04/R08/R13 等指令
+4. **ECU / 故障码**：`scanEcuInfo`、`scanErrorCode`，依赖 JSON 数据映射
+
+**OBD 数据管理**：
+
+* 远程 JSON 为 gzip 压缩，需 `pako.ungzip` 解压
+* 版本控制：远程版本 > 本地版本则下载并写入 IndexedDB
+* 使用 Dexie 做 `JsonDatabase` 封装，支持离线使用 OBD 故障码库
+
+**挑战点**：
+
+* 企微 BLE 仅在企业微信客户端内可用，调试依赖真机
+* 连接状态、ACC、车型解锁等状态需与业务层联动
+* 设备兼容性（不同 OBD 设备 UUID、协议差异）
+
+***
+
+## 三、业务与数据流难点
+
+### 3.1 接车（reception）业务复杂度
+
+* **单文件体量**：`reception/index.vue` 约 2344 行
+* **核心能力**：VIN 输入/OCR、车辆信息拉取、维修历史（全国/本地）、OBD 检测、接车单保存、活动提醒、客户需求等
+* **数据依赖**：DMS\_REPAIR、DMS\_DATACENTER、DMS\_COMMON 多服务，接口调用链长、错误兜底复杂
+
+**面试可展开**：如何拆分超大组件、状态管理策略、接口串并行与 loading 处理。
+
+***
+
+### 3.2 委托书 / 结算 / 增项业务复用
+
+**难点**：`labour`、`part`、`coupon`、`specialService`、`additional` 等组件在以下场景复用，逻辑和 UI 略有差异：
+
+* `repairOrder`（委托书）
+* `repairOrderEdit`（委托书编辑）
+* `repairAddItems`（维修增项）
+* `repairSettlement`（维修结算）
+
+\*\* challenge\*\*：
+
+* 通过 props / 事件区分上下文，易产生分支判断和隐式耦合
+* 优惠券、工单、套餐、活动等组合逻辑复杂，需清晰的数据流设计
+
+***
+
+### 3.3 在线健康检查（EVHC）流程
+
+* 覆盖：检查项编辑、增项、质检、服务顾问确认、客户签名等
+* 组件层级深：`onlineHealthMergeForEvhc` 下多级 `components`（如 `onlineHealthEdit`、`onlineHealthQualityInspection`）
+* 状态流转：技师保存 → 技师提交 → 质检退回/通过 → 顾问完成 → 客户签名
+* 多角色：技师、质检、服务顾问、客户，权限与展示逻辑交织
+
+***
+
+## 四、技术实现难点
+
+### 4.1 请求层：防重复、取消、错误处理
+
+**实现要点**：
+
+* `addPending` / `removePending` 基于 `method + url + params + data` 生成 key，用 `Map` 管理待处理请求
+* 使用 Axios `CancelToken` 取消重复请求
+* `clearPending` 在路由跳转等场景清空 pending
+* 错误码映射（400/401/403/500 等）统一 Toast 提示
+* 网络异常（`!response`）时写入 localStorage 便于排查
+
+***
+
+### 4.2 离线与版本化存储（Dexie）
+
+* `JsonDatabase` / `StableJsonDatabase` 基于 Dexie 封装
+* 存储结构：`jsonData`（版本、数据、更新时间）、`metadata`（key-value）
+* 写入带事务、重试（最多 3 次），失败时重置初始化状态
+* OBD 故障码 JSON 以压缩形式存储，按版本更新，支持弱网/离线场景
+
+***
+
+### 4.3 移动端适配
+
+* **rem 方案**：postcss-pxtorem + `@unocss/preset-rem-to-px`（baseFontSize: 4）+ amfe-flexible
+* **样式变量**：`variable.scss` 通过 Vite `additionalData` 全局注入
+* **UnoCSS**：与 Vant、SCSS 共存，需注意优先级和原子类命名
+* **兼容性**：`@vitejs/plugin-legacy` 支持 IE11、iOS 10，部分依赖需 polyfill
+
+***
+
+### 4.4 OCR 集成
+
+* VIN 码、行驶证、车牌识别，调用 `DMS_COMMON` 下 `ocr/vehiclevin`、`ocr/vehiclelicense`
+* 图片需预处理（压缩、resize），与 `compressorjs` 等配合使用
+* 结果解析、校验、回填表单，需处理识别失败、模糊等问题
+
+***
+
+## 五、构建与工程化
+
+* **base**：`/dmsapp/repair`，部署在子路径
+* **多环境**：development / test / production，环境变量区分 API、企微 corpId 等
+* **代码分割**：echarts 单独 chunk，`manualChunks` 控制包体积
+* **构建兼容**：针对安卓微信内核的 ES5 兼容、terser 配置（含 vconsole eval 忽略）
+* **代理**：`/clouddms`、`/lab-dms` 分别代理不同后端，支持本地联调
+
+***
+
+## 六、面试回答提纲
+
+| 问题方向 | 可展开内容 |
+|----------|-------------|
+| 多服务 API 如何治理 | server.ts 前缀常量、拦截器统一头、按业务拆 api 模块 |
+| 企业微信登录流程 | OAuth code 换取 token、路由守卫、白名单、sessionStorage 持久化 |
+| 蓝牙 OBD 实现思路 | 企微 BLE API → 连接/读写 → 分包组包 → ECU/故障码 JSON 解析，Dexie 离线存储 |
+| 超大页面如何拆分 | 按功能拆 components、hooks、store、services，按状态拆分步骤组件 |
+| 请求防抖/取消 | pending Map + CancelToken，路由跳转 clearPending |
+| 移动端适配方案 | rem + pxtorem + UnoCSS + 设计变量 |
+| 离线/弱网策略 | Dexie IndexedDB 存 OBD JSON，版本控制 + 重试 |
+
+***
+
+## 七、总结
+
+项目综合了 **微服务 API 治理**、**企业微信生态集成**、**蓝牙/OBD 硬件协议**、**复杂维修业务流程** 以及 **移动端适配与工程化** 等多类难点。在面试中可从「业务理解 → 技术选型 → 实现细节 → 踩坑与优化」顺序展开，体现对 DMS 维修领域和移动端 H5 的掌握程度。
