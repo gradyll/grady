@@ -18,6 +18,7 @@ features:
   - icon: 📝
     title: 记录
     details: 工作当中遇到的问题和解决方案记录。
+    link: workLog/index
   - icon: 📖
     title: 知识点
     details: 学习和工作中用到的知识点以及应用。
