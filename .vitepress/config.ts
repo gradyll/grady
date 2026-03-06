@@ -72,6 +72,7 @@ export default defineConfigWithTheme({
         items: [
           { text: 'Node', link: '/backendFramework/node' },
           { text: 'Python', link: '/backendFramework/python' },
+          { text: 'AI', link: '/ai/index' },
         ]
       },
       {
@@ -194,6 +195,14 @@ export default defineConfigWithTheme({
           items: [
             { text: '如何发布版本更新', link: '/workLog/index' },
             { text: '工作项目总结', link: '/workLog/work_project' },
+          ]
+        }
+      ],
+      '/ai/': [
+        {
+          text: 'AI',
+          items: [
+            { text: 'AI', link: '/ai/index' },
           ]
         }
       ],
